@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -35,7 +35,7 @@
 
     .app-container {
       display: grid;
-      grid-template-columns: 1fr 300px;
+      grid-template-columns: 1fr 320px;
       gap: 2rem;
       width: 100%;
       max-width: 1350px;
@@ -61,7 +61,7 @@
     }
 
     .title {
-      font-size: 1.5rem;
+      font-size: 1.75rem;
       font-weight: 700;
       color: var(--text);
     }
@@ -70,7 +70,7 @@
     .slot-window {
       position: relative;
       width: 100%;
-      max-width: 800px;
+      max-width: 850px;
       height: 120px;
       background: #090d16;
       border: 4px solid var(--primary);
@@ -122,12 +122,13 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.25rem;
+      font-size: 1.15rem;
       font-weight: 600;
       color: #fff;
       text-align: center;
       padding: 0 1rem;
-      padding-top: 54px;
+      /* Fixed: adjusted from 54px to keep text vertically centered */
+      padding-top: 4px;
     }
 
     /* Controls */
@@ -135,7 +136,7 @@
       display: flex;
       gap: 1rem;
       width: 100%;
-      max-width: 800px;
+      max-width: 850px;
     }
 
     button {
@@ -168,7 +169,7 @@
       background-color: transparent;
       border: 1px solid var(--border);
       color: var(--text-muted);
-      flex: 0.4;
+      flex: 0.3;
     }
 
     .btn-reset:hover {
@@ -206,7 +207,7 @@
       flex-direction: column;
       gap: 0.5rem;
       overflow-y: auto;
-      max-height: 250px;
+      max-height: 350px;
     }
 
     .history-item {
@@ -214,10 +215,10 @@
       border: 1px solid var(--border);
       padding: 0.6rem 0.8rem;
       border-radius: 6px;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
+      line-height: 1.4;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
       animation: fadeIn 0.3s ease;
     }
 
@@ -225,6 +226,7 @@
       color: var(--accent);
       font-weight: 700;
       margin-right: 0.5rem;
+      flex-shrink: 0;
     }
 
     @keyframes fadeIn {
@@ -244,7 +246,7 @@
 <div class="app-container">
   <!-- Slot Reel Machine -->
   <div class="slot-section">
-    <h1 class="title">抽debuff！</h1>
+    <h1 class="title">🎮 红警 Debuff 抽取机</h1>
     
     <div class="slot-window">
       <div class="slot-reel" id="reel">
@@ -260,9 +262,9 @@
 
   <!-- History Panel -->
   <div class="history-section">
-    <h2 class="history-title">已经获得过的debuff：</h2>
+    <h2 class="history-title">已经获得过的 debuff：</h2>
     <ul class="history-list" id="historyList">
-      <li class="empty-msg" id="emptyMsg">暂时还没有过任何debuff。</li>
+      <li class="empty-msg" id="emptyMsg">暂时还没有抽到任何 debuff。</li>
     </ul>
   </div>
 </div>
@@ -281,24 +283,34 @@
 
   const ITEM_HEIGHT = 50; // height of each item in pixels
 
-  // Fallback data in case prizes.json is blocked by browser CORS policy on local file protocol
+  // Embedded Red Alert debuffs fallback data
   const fallbackPrizes = [
-    { id: "1", name: "这是选项样例", weight: 1, stock: 1 }  ];
+    { id: "1", name: "禁止建造犀牛坦克或灰熊坦克", weight: 1, stock: 1 },
+    { id: "2", name: "禁止建造防空履带车或多功能步兵车", weight: 1, stock: 1 },
+    { id: "3", name: "禁止建造军犬、恐怖机器人、火箭飞行兵或间谍卫星", weight: 1, stock: 1 },
+    { id: "4", name: "禁止建造防御栏的建筑，超级武器除外", weight: 11, stock: 1 },
+    { id: "5", name: "禁止建造雷达或空指部", weight: 1, stock: 1 },
+    { id: "6", name: "必须使用利比亚，且对手的建造栏建筑只能用自爆卡车或核弹摧毁", weight: 1, stock: 1 },
+    { id: "7", name: "第一个矿场附赠的采矿车只能在对手基地旁的矿区采矿", weight: 1, stock: 1 },
+    { id: "8", name: "禁止建造动员兵、美国大兵和军犬，卖建筑赠送的步兵单位要在10秒内自行消灭", weight: 1, stock: 1 },
+    { id: "9", name: "禁止使用键盘操作", weight: 1, stock: 1 },
+    { id: "10", name: "每当摧毁一个敌方建筑栏建筑，需要挂机3秒钟嘲讽对手", weight: 1, stock: 1 }
+  ];
 
-  // Fetch prizes JSON or fallback
+  // Fetch debuff.json or use fallback
   async function loadPrizes() {
     try {
       const response = await fetch('debuff.json');
-      if (!response.ok) throw new Error('Network error');
+      if (!response.ok) throw new Error('Network response was not ok');
       initialPrizes = await response.json();
     } catch (err) {
-      console.warn('Could not load debuff.json (likely CORS if opening locally without server). Using fallback data.', err);
+      console.warn('Could not load debuff.json. Using fallback embedded debuffs.', err);
       initialPrizes = JSON.parse(JSON.stringify(fallbackPrizes));
     }
     resetDraw();
   }
 
-  // Reset the process
+  // Reset the game state
   function resetDraw() {
     if (isSpinning) return;
     availablePrizes = JSON.parse(JSON.stringify(initialPrizes));
@@ -313,9 +325,8 @@
     spinBtn.disabled = false;
   }
 
-  // Weighted Random Draw algorithm
+  // Weighted Random Draw algorithm (without replacement)
   function selectWeightedPrize() {
-    // Filter items with remaining stock
     const activePool = availablePrizes.filter(p => p.stock > 0);
     if (activePool.length === 0) return null;
 
@@ -324,12 +335,18 @@
 
     for (const item of activePool) {
       if (random < item.weight) {
-        item.stock -= 1; // Decrease stock (without replacement)
-        return item;
+        // Mutate original reference stock
+        const realItem = availablePrizes.find(p => p.id === item.id);
+        realItem.stock -= 1; 
+        return realItem;
       }
       random -= item.weight;
     }
-    return activePool[activePool.length - 1];
+
+    const lastItem = activePool[activePool.length - 1];
+    const realItem = availablePrizes.find(p => p.id === lastItem.id);
+    realItem.stock -= 1;
+    return realItem;
   }
 
   // Spin Reel Animation
@@ -338,7 +355,7 @@
 
     const wonPrize = selectWeightedPrize();
     if (!wonPrize) {
-      alert('All prizes have been drawn!');
+      alert('所有的 debuff 已经全部抽完！');
       spinBtn.disabled = true;
       return;
     }
@@ -346,61 +363,58 @@
     isSpinning = true;
     spinBtn.disabled = true;
 
-    // Create a sequence of items for the reel effect
-    const activePool = availablePrizes.filter(p => p.stock >= 0);
+    // Use all initial option names for ticker visuals
+    const allNames = initialPrizes.map(p => p.name);
     const spinSequence = [];
-    const totalItemsInSpin = 30; // Length of spin animation reel
+    const totalItemsInSpin = 30;
 
     for (let i = 0; i < totalItemsInSpin - 1; i++) {
-      const randomItem = activePool[Math.floor(Math.random() * activePool.length)];
-      spinSequence.push(randomItem.name);
+      const randomName = allNames[Math.floor(Math.random() * allNames.length)];
+      spinSequence.push(randomName);
     }
-    // Set the target winning item as the final destination
+    // Final element MUST be the won item
     spinSequence.push(wonPrize.name);
 
-    // Build DOM elements for reel
+    // Render reel items
     reel.style.transition = 'none';
     reel.style.transform = 'translateY(0px)';
     reel.innerHTML = spinSequence
       .map(name => `<div class="slot-item">${name}</div>`)
       .join('');
 
-    // Force repaint
-    reel.offsetHeight;
+    reel.offsetHeight; // Force layout recalculation
 
-    // Target position calculation to center the winning item inside the frame
-    // Reel window is 120px high, item is 50px high. Center offset is (120 - 50) / 2 = 35px
+    // Stop position offset (+35 centers inside 120px window)
     const targetY = -((spinSequence.length - 1) * ITEM_HEIGHT) + 35;
 
-    // Start spin animation
+    // Execute spin easing
     reel.style.transition = 'transform 3.5s cubic-bezier(0.15, 0.85, 0.35, 1.0)';
     reel.style.transform = `translateY(${targetY}px)`;
 
-    // On animation end
+    // Complete spin callback
     setTimeout(() => {
       isSpinning = false;
-      spinBtn.disabled = availablePrizes.every(p => p.stock <= 0);
+      const remainingStock = availablePrizes.reduce((sum, p) => sum + p.stock, 0);
+      spinBtn.disabled = remainingStock <= 0;
       recordPrize(wonPrize.name);
     }, 3600);
   }
 
-  // Add drawn prize to sidebar history
+  // Record drawn result to sidebar
   function recordPrize(prizeName) {
     drawnPrizes.push(prizeName);
     emptyMsg.style.display = 'none';
 
     const li = document.createElement('li');
     li.className = 'history-item';
-    li.innerHTML = `<span><span class="order">#${drawnPrizes.length}</span> ${prizeName}</span>`;
+    li.innerHTML = `<span class="order">#${drawnPrizes.length}</span><span>${prizeName}</span>`;
     
     historyList.prepend(li);
   }
 
-  // Event Listeners
   spinBtn.addEventListener('click', spin);
   resetBtn.addEventListener('click', resetDraw);
 
-  // Initialize
   loadPrizes();
 </script>
 </body>
