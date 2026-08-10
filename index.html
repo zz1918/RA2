@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>红警debuff抽取机</title>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #f59e0b;
+      --border: #334155;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    .app-container {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 2rem;
+      width: 100%;
+      max-width: 950px;
+      background: var(--card-bg);
+      padding: 2rem;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    @media (max-width: 768px) {
+      .app-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Main Slot Section */
+    .slot-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    /* Slot Reel Box */
+    .slot-window {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+      height: 120px;
+      background: #090d16;
+      border: 4px solid var(--primary);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.8);
+    }
+
+    /* Center indicator frame */
+    .slot-window::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border-top: 35px solid rgba(9, 13, 22, 0.6);
+      border-bottom: 35px solid rgba(9, 13, 22, 0.6);
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .slot-window::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 50px;
+      transform: translateY(-50%);
+      border-top: 2px solid var(--accent);
+      border-bottom: 2px solid var(--accent);
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    .slot-reel {
+      display: flex;
+      flex-direction: column;
+      position: absolute;
+      width: 100%;
+      top: 0;
+      left: 0;
+      will-change: transform;
+    }
+
+    .slot-item {
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #fff;
+      text-align: center;
+      padding: 0 1rem;
+      padding-top: 54px;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      gap: 1rem;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    button {
+      flex: 1;
+      padding: 0.85rem 1.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-spin {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .btn-spin:hover:not(:disabled) {
+      background-color: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-spin:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-reset {
+      background-color: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      flex: 0.4;
+    }
+
+    .btn-reset:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+    }
+
+    /* History Section */
+    .history-section {
+      border-left: 1px solid var(--border);
+      padding-left: 1.5rem;
+      display: flex;
+      flex-direction: column;
+    }
+
+    @media (max-width: 768px) {
+      .history-section {
+        border-left: none;
+        border-top: 1px solid var(--border);
+        padding-left: 0;
+        padding-top: 1.5rem;
+      }
+    }
+
+    .history-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text-muted);
+    }
+
+    .history-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      overflow-y: auto;
+      max-height: 250px;
+    }
+
+    .history-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      padding: 0.6rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .history-item .order {
+      color: var(--accent);
+      font-weight: 700;
+      margin-right: 0.5rem;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateX(10px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .empty-msg {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Slot Reel Machine -->
+  <div class="slot-section">
+    <h1 class="title">抽debuff！</h1>
+    
+    <div class="slot-window">
+      <div class="slot-reel" id="reel">
+        <div class="slot-item">点击“旋转”开始抽debuff！</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn-spin" id="spinBtn">旋转!</button>
+      <button class="btn-reset" id="resetBtn">重置</button>
+    </div>
+  </div>
+
+  <!-- History Panel -->
+  <div class="history-section">
+    <h2 class="history-title">已经获得过的debuff：</h2>
+    <ul class="history-list" id="historyList">
+      <li class="empty-msg" id="emptyMsg">暂时还没有过任何debuff。</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  let initialPrizes = [];
+  let availablePrizes = [];
+  let drawnPrizes = [];
+  let isSpinning = false;
+
+  const reel = document.getElementById('reel');
+  const spinBtn = document.getElementById('spinBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const historyList = document.getElementById('historyList');
+  const emptyMsg = document.getElementById('emptyMsg');
+
+  const ITEM_HEIGHT = 50; // height of each item in pixels
+
+  // Fallback data in case prizes.json is blocked by browser CORS policy on local file protocol
+  const fallbackPrizes = [
+    { id: "1", name: "🥇 Grand Prize: Laptop", weight: 1, stock: 1 },
+    { id: "2", name: "🎧 Wireless Headphones", weight: 3, stock: 2 },
+    { id: "3", name: "💳 $50 Gift Card", weight: 5, stock: 3 },
+    { id: "4", name: "☕ Coffee Mug", weight: 10, stock: 5 },
+    { id: "5", name: "🎨 Sticker Pack", weight: 20, stock: 10 }
+  ];
+
+  // Fetch prizes JSON or fallback
+  async function loadPrizes() {
+    try {
+      const response = await fetch('debuff.json');
+      if (!response.ok) throw new Error('Network error');
+      initialPrizes = await response.json();
+    } catch (err) {
+      console.warn('Could not load debuff.json (likely CORS if opening locally without server). Using fallback data.', err);
+      initialPrizes = JSON.parse(JSON.stringify(fallbackPrizes));
+    }
+    resetDraw();
+  }
+
+  // Reset the process
+  function resetDraw() {
+    if (isSpinning) return;
+    availablePrizes = JSON.parse(JSON.stringify(initialPrizes));
+    drawnPrizes = [];
+    historyList.innerHTML = '';
+    historyList.appendChild(emptyMsg);
+    emptyMsg.style.display = 'block';
+    
+    reel.style.transition = 'none';
+    reel.style.transform = 'translateY(0px)';
+    reel.innerHTML = '<div class="slot-item">点击“旋转”开始抽debuff！</div>';
+    spinBtn.disabled = false;
+  }
+
+  // Weighted Random Draw algorithm
+  function selectWeightedPrize() {
+    // Filter items with remaining stock
+    const activePool = availablePrizes.filter(p => p.stock > 0);
+    if (activePool.length === 0) return null;
+
+    const totalWeight = activePool.reduce((sum, item) => sum + item.weight, 0);
+    let random = Math.random() * totalWeight;
+
+    for (const item of activePool) {
+      if (random < item.weight) {
+        item.stock -= 1; // Decrease stock (without replacement)
+        return item;
+      }
+      random -= item.weight;
+    }
+    return activePool[activePool.length - 1];
+  }
+
+  // Spin Reel Animation
+  function spin() {
+    if (isSpinning) return;
+
+    const wonPrize = selectWeightedPrize();
+    if (!wonPrize) {
+      alert('All prizes have been drawn!');
+      spinBtn.disabled = true;
+      return;
+    }
+
+    isSpinning = true;
+    spinBtn.disabled = true;
+
+    // Create a sequence of items for the reel effect
+    const activePool = availablePrizes.filter(p => p.stock >= 0);
+    const spinSequence = [];
+    const totalItemsInSpin = 30; // Length of spin animation reel
+
+    for (let i = 0; i < totalItemsInSpin - 1; i++) {
+      const randomItem = activePool[Math.floor(Math.random() * activePool.length)];
+      spinSequence.push(randomItem.name);
+    }
+    // Set the target winning item as the final destination
+    spinSequence.push(wonPrize.name);
+
+    // Build DOM elements for reel
+    reel.style.transition = 'none';
+    reel.style.transform = 'translateY(0px)';
+    reel.innerHTML = spinSequence
+      .map(name => `<div class="slot-item">${name}</div>`)
+      .join('');
+
+    // Force repaint
+    reel.offsetHeight;
+
+    // Target position calculation to center the winning item inside the frame
+    // Reel window is 120px high, item is 50px high. Center offset is (120 - 50) / 2 = 35px
+    const targetY = -((spinSequence.length - 1) * ITEM_HEIGHT) + 35;
+
+    // Start spin animation
+    reel.style.transition = 'transform 3.5s cubic-bezier(0.15, 0.85, 0.35, 1.0)';
+    reel.style.transform = `translateY(${targetY}px)`;
+
+    // On animation end
+    setTimeout(() => {
+      isSpinning = false;
+      spinBtn.disabled = availablePrizes.every(p => p.stock <= 0);
+      recordPrize(wonPrize.name);
+    }, 3600);
+  }
+
+  // Add drawn prize to sidebar history
+  function recordPrize(prizeName) {
+    drawnPrizes.push(prizeName);
+    emptyMsg.style.display = 'none';
+
+    const li = document.createElement('li');
+    li.className = 'history-item';
+    li.innerHTML = `<span><span class="order">#${drawnPrizes.length}</span> ${prizeName}</span>`;
+    
+    historyList.prepend(li);
+  }
+
+  // Event Listeners
+  spinBtn.addEventListener('click', spin);
+  resetBtn.addEventListener('click', resetDraw);
+
+  // Initialize
+  loadPrizes();
+</script>
+</body>
+</html>
