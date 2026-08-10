@@ -127,8 +127,12 @@
       color: #fff;
       text-align: center;
       padding: 0 1rem;
-      /* Fixed: adjusted from 54px to keep text vertically centered */
       padding-top: 4px;
+    }
+
+    /* Target the initial prompt to lower its vertical position */
+    .slot-reel > .slot-item:first-child {
+      padding-top: 50px;
     }
 
     /* Controls */
@@ -194,11 +198,34 @@
       }
     }
 
+    /* Inline Header Title + Input Blank */
     .history-title {
       font-size: 1.1rem;
       font-weight: 600;
       margin-bottom: 1rem;
       color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+
+    .inline-player-input {
+      width: 90px;
+      padding: 0.25rem 0.5rem;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--accent);
+      font-size: 0.95rem;
+      font-weight: 700;
+      outline: none;
+      transition: border-color 0.2s ease, width 0.2s ease;
+    }
+
+    .inline-player-input:focus {
+      border-color: var(--primary);
+      width: 120px;
     }
 
     .history-list {
@@ -225,7 +252,7 @@
     .history-item .order {
       color: var(--accent);
       font-weight: 700;
-      margin-right: 0.5rem;
+      margin-right: 0.4rem;
       flex-shrink: 0;
     }
 
@@ -262,7 +289,12 @@
 
   <!-- History Panel -->
   <div class="history-section">
-    <h2 class="history-title">已经获得过的 debuff：</h2>
+    <!-- Inline Name Input + Heading in the Same Row -->
+    <h2 class="history-title">
+      <input type="text" id="playerName" class="inline-player-input" placeholder="选手名" />
+      已经获得过的 debuff：
+    </h2>
+
     <ul class="history-list" id="historyList">
       <li class="empty-msg" id="emptyMsg">暂时还没有抽到任何 debuff。</li>
     </ul>
