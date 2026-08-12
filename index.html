@@ -401,6 +401,12 @@
     spinBtn.disabled = false;
   }
 
+    // 纯随机抽取算法（等概率抽取）
+  function getRandomItem(pool) {
+    if (!pool || pool.length === 0) return null;
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
   // 权重随机抽取算法
   function getRandomWeightedItem(pool) {
     const totalWeight = pool.reduce((sum, item) => sum + (Number(item.weight) || 1), 0);
@@ -449,10 +455,10 @@
     isSpinning = true;
     spinBtn.disabled = true;
 
-    // =================【第一步：先抽选手 A 的 debuff】=================
-    const wonDebuffP1 = getRandomWeightedItem(debuffsPool);
+    // =================【第一步：先抽选手 A 的 debuff（纯等概率盲抽）】=================
+    const wonDebuffP1 = getRandomItem(debuffsPool);
 
-    // =================【第二步：再抽选手 B 的 debuff】=================
+    // =================【第二步：再抽选手 B 的 debuff（纯等概率盲抽）】=================
     const targetWeight = wonDebuffP1.weight;
     const banIdsByP1 = Array.isArray(wonDebuffP1.ban) ? wonDebuffP1.ban : []; 
 
@@ -465,13 +471,13 @@
 
     let wonDebuffP2;
     if (p2EligiblePool.length > 0) {
-      wonDebuffP2 = getRandomWeightedItem(p2EligiblePool);
+      wonDebuffP2 = getRandomItem(p2EligiblePool);
     } else {
       // 降级防错：如果全被 ban 掉了，则被迫和选手 A 拿一样的
       wonDebuffP2 = wonDebuffP1; 
     }
 
-    // =================【第三步：最后抽比赛地图】=================
+    // =================【第三步：最后抽比赛地图（纯等概率盲抽）】=================
     // 获取两位选手 Debuff 要求的最低人数限制（若无该字段则默认为 0）
     const reqNumP1 = Number(wonDebuffP1.req_num) || 0;
     const reqNumP2 = Number(wonDebuffP2.req_num) || 0;
@@ -506,7 +512,7 @@
       }
     };
 
-    // 跑马灯滚动效果，最终结果使用前面计算出来的 wonMap、wonDebuffP1、wonDebuffP2
+    // 跑马灯滚动效果
     animateReel(reelMap, mapsPool.map(m => m.name), wonMap.name, checkAllFinished);
     animateReel(reelP1, debuffsPool.map(d => d.name), wonDebuffP1.name, checkAllFinished);
     animateReel(reelP2, debuffsPool.map(d => d.name), wonDebuffP2.name, checkAllFinished);
