@@ -449,34 +449,51 @@
     isSpinning = true;
     spinBtn.disabled = true;
 
-    // 1. 抽取地图
-    const wonMap = mapsPool[Math.floor(Math.random() * mapsPool.length)];
-
-    // 2. 抽取选手 A 的 debuff
+    // =================【第一步：先抽选手 A 的 debuff】=================
     const wonDebuffP1 = getRandomWeightedItem(debuffsPool);
 
-    // 3. 确定选手 B 的可选池（支持数组形式的 ban 字段）
+    // =================【第二步：再抽选手 B 的 debuff】=================
     const targetWeight = wonDebuffP1.weight;
     const banIdsByP1 = Array.isArray(wonDebuffP1.ban) ? wonDebuffP1.ban : []; 
 
+    // 筛选：必须和 A 相同的 weight，且不能在 A 的 ban 数组里
     const p2EligiblePool = debuffsPool.filter(item => {
-      // 规则一：必须拥有相同的 weight 属性值
       const isSameWeight = item.weight === targetWeight;
-      // 规则二：过滤掉选手 A 数组里 ban 掉的所有 id
       const isNotBanned = !banIdsByP1.map(String).includes(String(item.id));
       return isSameWeight && isNotBanned;
     });
 
-    // 4. 正确声明并获取选手 B 的 debuff
     let wonDebuffP2;
     if (p2EligiblePool.length > 0) {
       wonDebuffP2 = getRandomWeightedItem(p2EligiblePool);
     } else {
-      // 如果符合条件的池子被 ban 空了，降级选择选手 A 的相同 debuff 确保不崩溃
+      // 降级防错：如果全被 ban 掉了，则被迫和选手 A 拿一样的
       wonDebuffP2 = wonDebuffP1; 
     }
 
-    // 5. 执行动画
+    // =================【第三步：最后抽比赛地图】=================
+    // 获取两位选手 Debuff 要求的最低人数限制（若无该字段则默认为 0）
+    const reqNumP1 = Number(wonDebuffP1.req_num) || 0;
+    const reqNumP2 = Number(wonDebuffP2.req_num) || 0;
+    // 地图人数 num 必须同时满足不小于两人的 req_num (即满足两人的最大值)
+    const requiredMinPlayers = Math.max(reqNumP1, reqNumP2);
+
+    // 过滤出符合人数限制的地图池
+    const eligibleMapsPool = mapsPool.filter(map => {
+      const mapNum = Number(map.num) || 0;
+      return mapNum >= requiredMinPlayers;
+    });
+
+    let wonMap;
+    if (eligibleMapsPool.length > 0) {
+      wonMap = eligibleMapsPool[Math.floor(Math.random() * eligibleMapsPool.length)];
+    } else {
+      // 降级防错：如果没有任何一张地图满足人数，则从全部地图里盲抽
+      console.warn(`未找到支持 ${requiredMinPlayers} 人的地图，已从全地图池中抽取。`);
+      wonMap = mapsPool[Math.floor(Math.random() * mapsPool.length)];
+    }
+
+    // =================【第四步：执行跑马灯动画与渲染】=================
     let finishedCount = 0;
     const checkAllFinished = () => {
       finishedCount++;
@@ -489,6 +506,7 @@
       }
     };
 
+    // 跑马灯滚动效果，最终结果使用前面计算出来的 wonMap、wonDebuffP1、wonDebuffP2
     animateReel(reelMap, mapsPool.map(m => m.name), wonMap.name, checkAllFinished);
     animateReel(reelP1, debuffsPool.map(d => d.name), wonDebuffP1.name, checkAllFinished);
     animateReel(reelP2, debuffsPool.map(d => d.name), wonDebuffP2.name, checkAllFinished);
