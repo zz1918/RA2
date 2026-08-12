@@ -457,20 +457,19 @@
 
     // 3. 确定选手 B 的可选池（相同 weight 且过滤掉被选手 A ban 掉的 id）
     const targetWeight = wonDebuffP1.weight;
-    const banIdByP1 = wonDebuffP1.ban; 
+    // 此时 banIdByP1 是一个数组，确保万一没定义时默认给个空数组 []
+    const banIdsByP1 = Array.isArray(wonDebuffP1.ban) ? wonDebuffP1.ban : []; 
 
     const p2EligiblePool = debuffsPool.filter(item => {
+      // 规则一：必须拥有相同的 weight 属性值
       const isSameWeight = item.weight === targetWeight;
-      const isNotBanned = banIdByP1 === undefined || String(item.id) !== String(banIdByP1);
+      
+      // 规则二：过滤掉选手 A 数组里 ban 掉的所有 id
+      // 将 item.id 转为数字或字符串，去匹配数组
+      const isNotBanned = !banIdsByP1.map(String).includes(String(item.id));
+      
       return isSameWeight && isNotBanned;
     });
-
-    let wonDebuffP2;
-    if (p2EligiblePool.length > 0) {
-      wonDebuffP2 = getRandomWeightedItem(p2EligiblePool);
-    } else {
-      wonDebuffP2 = wonDebuffP1; 
-    }
 
     // 4. 执行动画
     let finishedCount = 0;
