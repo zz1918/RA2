@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>红警debuff抽取机</title>
+  <title>公平的debuff抽取机</title>
   <style>
     :root {
       --primary: #6366f1;
@@ -28,14 +28,25 @@
       color: var(--text);
       min-height: 100vh;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       padding: 2rem;
     }
 
+    /* 网站大标题 */
+    .site-title {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 2rem;
+      text-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
+      text-align: center;
+    }
+
     .app-container {
       display: grid;
-      grid-template-columns: 1fr 320px;
+      grid-template-columns: 1fr 350px;
       gap: 2rem;
       width: 100%;
       max-width: 1500px;
@@ -46,13 +57,13 @@
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 968px) {
       .app-container {
         grid-template-columns: 1fr;
       }
     }
 
-    /* Main Slot Section */
+    /* 抽取栏区域 */
     .slot-section {
       display: flex;
       flex-direction: column;
@@ -60,26 +71,66 @@
       gap: 1.5rem;
     }
 
-    .title {
-      font-size: 1.75rem;
-      font-weight: 700;
-      color: var(--text);
+    .row-container {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
     }
 
-    /* Slot Reel Box */
+    .slot-row {
+      width: 100%;
+    }
+
+    .row-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    /* 可输入选手名输入框样式 */
+    .inline-player-input {
+      width: 110px;
+      padding: 0.2rem 0.5rem;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--accent);
+      font-size: 1.05rem;
+      font-weight: 700;
+      outline: none;
+      transition: border-color 0.2s ease, width 0.2s ease;
+      text-align: center;
+    }
+
+    .inline-player-input:focus {
+      border-color: var(--primary);
+      width: 150px;
+    }
+
+    /* 滚动槽窗口 */
     .slot-window {
       position: relative;
       width: 100%;
-      max-width: 1000px;
-      height: 120px;
+      height: 90px;
       background: #090d16;
-      border: 4px solid var(--primary);
+      border: 3px solid var(--border);
       border-radius: 12px;
       overflow: hidden;
       box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.8);
+      transition: border-color 0.3s;
     }
 
-    /* Center indicator frame */
+    .slot-window.active {
+      border-color: var(--primary);
+    }
+
+    /* 居中指示线 */
     .slot-window::before {
       content: '';
       position: absolute;
@@ -87,8 +138,8 @@
       left: 0;
       right: 0;
       bottom: 0;
-      border-top: 35px solid rgba(9, 13, 22, 0.6);
-      border-bottom: 35px solid rgba(9, 13, 22, 0.6);
+      border-top: 20px solid rgba(9, 13, 22, 0.6);
+      border-bottom: 20px solid rgba(9, 13, 22, 0.6);
       z-index: 2;
       pointer-events: none;
     }
@@ -122,25 +173,25 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.15rem;
+      font-size: 1.1rem;
       font-weight: 600;
       color: #fff;
       text-align: center;
       padding: 0 1rem;
-      padding-top: 4px;
+      padding-top: 2px;
     }
 
-    /* Target the initial prompt to lower its vertical position */
+    /* 调整初始提示垂直居中偏下位置 */
     .slot-reel > .slot-item:first-child {
-      padding-top: 50px;
+      padding-top: 20px;
     }
 
-    /* Controls */
+    /* 控制按钮 */
     .controls {
       display: flex;
       gap: 1rem;
       width: 100%;
-      max-width: 1000px;
+      margin-top: 1rem;
     }
 
     button {
@@ -181,16 +232,19 @@
       color: var(--text);
     }
 
-    /* History Section */
-    .history-section {
+    /* FAQ 区域 */
+    .faq-section {
       border-left: 1px solid var(--border);
       padding-left: 1.5rem;
       display: flex;
       flex-direction: column;
+      gap: 1rem;
+      overflow-y: auto;
+      max-height: 500px;
     }
 
-    @media (max-width: 768px) {
-      .history-section {
+    @media (max-width: 968px) {
+      .faq-section {
         border-left: none;
         border-top: 1px solid var(--border);
         padding-left: 0;
@@ -198,195 +252,168 @@
       }
     }
 
-    /* Inline Header Title + Input Blank */
-    .history-title {
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-      flex-wrap: wrap;
-    }
-
-    .inline-player-input {
-      width: 90px;
-      padding: 0.25rem 0.5rem;
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: var(--accent);
-      font-size: 0.95rem;
+    .faq-title {
+      font-size: 1.2rem;
       font-weight: 700;
-      outline: none;
-      transition: border-color 0.2s ease, width 0.2s ease;
+      color: var(--text);
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 0.5rem;
     }
 
-    .inline-player-input:focus {
-      border-color: var(--primary);
-      width: 120px;
-    }
-
-    .history-list {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      overflow-y: auto;
-      max-height: 350px;
-    }
-
-    .history-item {
+    .faq-box {
       background: rgba(255, 255, 255, 0.03);
       border: 1px solid var(--border);
-      padding: 0.6rem 0.8rem;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      line-height: 1.4;
-      display: flex;
-      align-items: flex-start;
-      animation: fadeIn 0.3s ease;
+      padding: 1rem;
+      border-radius: 8px;
     }
 
-    .history-item .order {
+    .faq-box h3 {
+      font-size: 0.95rem;
       color: var(--accent);
-      font-weight: 700;
-      margin-right: 0.4rem;
-      flex-shrink: 0;
+      margin-bottom: 0.5rem;
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateX(10px); }
-      to { opacity: 1; transform: translateX(0); }
-    }
-
-    .empty-msg {
-      font-size: 0.85rem;
+    .faq-box p {
+      font-size: 0.9rem;
       color: var(--text-muted);
-      font-style: italic;
+      line-height: 1.5;
     }
   </style>
 </head>
 <body>
 
+<h1 class="site-title">🎮 公平的双人Debuff抽取系统</h1>
+
 <div class="app-container">
-  <!-- Slot Reel Machine -->
+  <!-- 抽取主区域 -->
   <div class="slot-section">
-    <h1 class="title">🎮 红警 Debuff 抽取机</h1>
-    
-    <div class="slot-window">
-      <div class="slot-reel" id="reel">
-        <div class="slot-item">点击“旋转”开始抽debuff！</div>
+    <div class="row-container">
+      <!-- 1. 地图抽取栏 -->
+      <div class="slot-row">
+        <div class="row-title">🗺️ 比赛地图：</div>
+        <div class="slot-window active" id="window-map">
+          <div class="slot-reel" id="reel-map">
+            <div class="slot-item">等待抽取比赛地图...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. 选手A抽取栏 -->
+      <div class="slot-row">
+        <div class="row-title">
+          👤 <input type="text" id="player1Name" class="inline-player-input" value="选手 A" placeholder="输入名字" /> 的 Debuff 提示：
+        </div>
+        <div class="slot-window active" id="window-p1">
+          <div class="slot-reel" id="reel-p1">
+            <div class="slot-item">等待抽取 debuff...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. 选手B抽取栏 -->
+      <div class="slot-row">
+        <div class="row-title">
+          👤 <input type="text" id="player2Name" class="inline-player-input" value="选手 B" placeholder="输入名字" /> 的 Debuff 提示：
+        </div>
+        <div class="slot-window active" id="window-p2">
+          <div class="slot-reel" id="reel-p2">
+            <div class="slot-item">等待抽取 debuff...</div>
+          </div>
+        </div>
       </div>
     </div>
 
     <div class="controls">
-      <button class="btn-spin" id="spinBtn">旋转!</button>
+      <button class="btn-spin" id="spinBtn">摇一摇！</button>
       <button class="btn-reset" id="resetBtn">重置</button>
     </div>
   </div>
 
-  <!-- History Panel -->
-  <div class="history-section">
-    <!-- Inline Name Input + Heading in the Same Row -->
-    <h2 class="history-title">
-      <input type="text" id="playerName" class="inline-player-input" placeholder="选手名" />
-      已经获得过的 debuff：
-    </h2>
-
-    <ul class="history-list" id="historyList">
-      <li class="empty-msg" id="emptyMsg">暂时还没有抽到任何 debuff。</li>
-    </ul>
+  <!-- FAQ 区域 -->
+  <div class="faq-section">
+    <h2 class="faq-title">💡 当前 Debuff 规则答疑 (FAQ)</h2>
+    <div id="faq-content">
+      <p style="color: var(--text-muted); font-style: italic;">暂无抽取的 Debuff 规则说明。</p>
+    </div>
   </div>
 </div>
 
 <script>
-  let initialPrizes = [];
-  let availablePrizes = [];
-  let drawnPrizes = [];
+  let mapsPool = [];
+  let debuffsPool = [];
   let isSpinning = false;
 
-  const reel = document.getElementById('reel');
+  const ITEM_HEIGHT = 50; 
+
+  // 获取 DOM 元素
   const spinBtn = document.getElementById('spinBtn');
   const resetBtn = document.getElementById('resetBtn');
-  const historyList = document.getElementById('historyList');
-  const emptyMsg = document.getElementById('emptyMsg');
+  const reelMap = document.getElementById('reel-map');
+  const reelP1 = document.getElementById('reel-p1');
+  const reelP2 = document.getElementById('reel-p2');
+  const faqContent = document.getElementById('faq-content');
+  const player1Input = document.getElementById('player1Name');
+  const player2Input = document.getElementById('player2Name');
 
-  const ITEM_HEIGHT = 50; // height of each item in pixels
+  // 后备保障数据
+  const fallbackMaps = [{ id: 1, name: " [后备] 月球巡礼" }];
+  const fallbackDebuffs = [{ id: 1, name: " [后备] 禁止使用鼠标", weight: 1, FAQ: "无" }];
 
-  // Embedded Red Alert debuffs fallback data
-  const fallbackPrizes = [
-    { id: "1", name: "这是样例", weight: 1, stock: 1 }  ];
-
-  // Fetch debuff.json or use fallback
-  async function loadPrizes() {
+  // 初始化加载外部 JSON
+  async function loadData() {
     try {
-      const response = await fetch('debuff.json');
-      if (!response.ok) throw new Error('Network response was not ok');
-      initialPrizes = await response.json();
+      const [mapsRes, debuffsRes] = await Promise.all([
+        fetch('map.json').then(r => r.ok ? r.json() : fallbackMaps),
+        fetch('debuff.json').then(r => r.ok ? r.json() : fallbackDebuffs)
+      ]);
+      mapsPool = mapsRes;
+      debuffsPool = debuffsRes;
     } catch (err) {
-      console.warn('Could not load debuff.json. Using fallback embedded debuffs.', err);
-      initialPrizes = JSON.parse(JSON.stringify(fallbackPrizes));
+      console.warn('读取配置文件失败，使用后备保障数据', err);
+      mapsPool = fallbackMaps;
+      debuffsPool = fallbackDebuffs;
     }
     resetDraw();
   }
 
-  // Reset the game state
+  // 重置界面与状态
   function resetDraw() {
     if (isSpinning) return;
-    availablePrizes = JSON.parse(JSON.stringify(initialPrizes));
-    drawnPrizes = [];
-    historyList.innerHTML = '';
-    historyList.appendChild(emptyMsg);
-    emptyMsg.style.display = 'block';
     
-    reel.style.transition = 'none';
-    reel.style.transform = 'translateY(0px)';
-    reel.innerHTML = '<div class="slot-item">点击“旋转”开始抽debuff！</div>';
+    // 重置地图滚轮
+    reelMap.style.transition = 'none';
+    reelMap.style.transform = 'translateY(0px)';
+    reelMap.innerHTML = '<div class="slot-item">等待抽取比赛地图...</div>';
+
+    // 重置选手1滚轮
+    reelP1.style.transition = 'none';
+    reelP1.style.transform = 'translateY(0px)';
+    reelP1.innerHTML = '<div class="slot-item">等待抽取 debuff...</div>';
+
+    // 重置选手2滚轮
+    reelP2.style.transition = 'none';
+    reelP2.style.transform = 'translateY(0px)';
+    reelP2.innerHTML = '<div class="slot-item">等待抽取 debuff...</div>';
+
+    // 重置FAQ
+    faqContent.innerHTML = '<p style="color: var(--text-muted); font-style: italic;">暂无抽取的 Debuff 规则说明。</p>';
     spinBtn.disabled = false;
   }
 
-  // Weighted Random Draw algorithm (without replacement)
-  function selectWeightedPrize() {
-    const activePool = availablePrizes.filter(p => p.stock > 0);
-    if (activePool.length === 0) return null;
-
-    const totalWeight = activePool.reduce((sum, item) => sum + item.weight, 0);
+  // 权重随机抽取算法
+  function getRandomWeightedItem(pool) {
+    const totalWeight = pool.reduce((sum, item) => sum + (Number(item.weight) || 1), 0);
     let random = Math.random() * totalWeight;
-
-    for (const item of activePool) {
-      if (random < item.weight) {
-        // Mutate original reference stock
-        const realItem = availablePrizes.find(p => p.id === item.id);
-        realItem.stock -= 1; 
-        return realItem;
-      }
-      random -= item.weight;
+    for (const item of pool) {
+      const w = Number(item.weight) || 1;
+      if (random < w) return item;
+      random -= w;
     }
-
-    const lastItem = activePool[activePool.length - 1];
-    const realItem = availablePrizes.find(p => p.id === lastItem.id);
-    realItem.stock -= 1;
-    return realItem;
+    return pool[pool.length - 1];
   }
 
-  // Spin Reel Animation
-  function spin() {
-    if (isSpinning) return;
-
-    const wonPrize = selectWeightedPrize();
-    if (!wonPrize) {
-      alert('所有的 debuff 已经全部抽完！');
-      spinBtn.disabled = true;
-      return;
-    }
-
-    isSpinning = true;
-    spinBtn.disabled = true;
-
-    // Use all initial option names for ticker visuals
-    const allNames = initialPrizes.map(p => p.name);
+  // 单个滚轮的滚动动画处理函数
+  function animateReel(reel, allNames, targetName, callback) {
     const spinSequence = [];
     const totalItemsInSpin = 30;
 
@@ -394,50 +421,102 @@
       const randomName = allNames[Math.floor(Math.random() * allNames.length)];
       spinSequence.push(randomName);
     }
-    // Final element MUST be the won item
-    spinSequence.push(wonPrize.name);
+    spinSequence.push(targetName);
 
-    // Render reel items
     reel.style.transition = 'none';
     reel.style.transform = 'translateY(0px)';
-    reel.innerHTML = spinSequence
-      .map(name => `<div class="slot-item">${name}</div>`)
-      .join('');
+    reel.innerHTML = spinSequence.map(name => `<div class="slot-item">${name}</div>`).join('');
 
-    reel.offsetHeight; // Force layout recalculation
+    reel.offsetHeight; 
 
-    // Stop position offset (+35 centers inside 120px window)
-    const targetY = -((spinSequence.length - 1) * ITEM_HEIGHT) + 35;
+    const targetY = -((spinSequence.length - 1) * ITEM_HEIGHT) + 20;
 
-    // Execute spin easing
     reel.style.transition = 'transform 3.5s cubic-bezier(0.15, 0.85, 0.35, 1.0)';
     reel.style.transform = `translateY(${targetY}px)`;
 
-    // Complete spin callback
-    setTimeout(() => {
-      isSpinning = false;
-      const remainingStock = availablePrizes.reduce((sum, p) => sum + p.stock, 0);
-      spinBtn.disabled = remainingStock <= 0;
-      recordPrize(wonPrize.name);
-    }, 3600);
+    setTimeout(callback, 3600);
   }
 
-  // Record drawn result to sidebar
-  function recordPrize(prizeName) {
-    drawnPrizes.push(prizeName);
-    emptyMsg.style.display = 'none';
+  // 开始同时抽取
+  function spinAll() {
+    if (isSpinning) return;
+    if (mapsPool.length === 0 || debuffsPool.length === 0) {
+      alert("抽签池数据为空，请检查 json 配置文件");
+      return;
+    }
 
-    const li = document.createElement('li');
-    li.className = 'history-item';
-    li.innerHTML = `<span class="order">#${drawnPrizes.length}</span><span>${prizeName}</span>`;
+    isSpinning = true;
+    spinBtn.disabled = true;
+
+    // 1. 抽取地图
+    const wonMap = mapsPool[Math.floor(Math.random() * mapsPool.length)];
+
+    // 2. 抽取选手 A 的 debuff
+    const wonDebuffP1 = getRandomWeightedItem(debuffsPool);
+
+    // 3. 确定选手 B 的可选池（相同 weight 且过滤掉被选手 A ban 掉的 id）
+    const targetWeight = wonDebuffP1.weight;
+    const banIdByP1 = wonDebuffP1.ban; 
+
+    const p2EligiblePool = debuffsPool.filter(item => {
+      const isSameWeight = item.weight === targetWeight;
+      const isNotBanned = banIdByP1 === undefined || String(item.id) !== String(banIdByP1);
+      return isSameWeight && isNotBanned;
+    });
+
+    let wonDebuffP2;
+    if (p2EligiblePool.length > 0) {
+      wonDebuffP2 = getRandomWeightedItem(p2EligiblePool);
+    } else {
+      wonDebuffP2 = wonDebuffP1; 
+    }
+
+    // 4. 执行动画
+    let finishedCount = 0;
+    const checkAllFinished = () => {
+      finishedCount++;
+      if (finishedCount === 3) {
+        isSpinning = false;
+        spinBtn.disabled = false;
+        // 动态读取输入框中的名字，传给 FAQ 模块
+        const p1Name = player1Input.value.trim() || '选手 A';
+        const p2Name = player2Input.value.trim() || '选手 B';
+        renderFAQ(p1Name, wonDebuffP1, p2Name, wonDebuffP2);
+      }
+    };
+
+    animateReel(reelMap, mapsPool.map(m => m.name), wonMap.name, checkAllFinished);
+    animateReel(reelP1, debuffsPool.map(d => d.name), wonDebuffP1.name, checkAllFinished);
+    animateReel(reelP2, debuffsPool.map(d => d.name), wonDebuffP2.name, checkAllFinished);
+  }
+
+  // 渲染右侧 FAQ 区域
+  function renderFAQ(p1Name, p1Debuff, p2Name, p2Debuff) {
+    let html = '';
     
-    historyList.prepend(li);
+    html += `
+      <div class="faq-box" style="margin-bottom: 1rem;">
+        <h3>${p1Name} Debuff 补充说明:</h3>
+        <p><strong>${p1Debuff.name}</strong></p>
+        <p style="margin-top:0.4rem;">${p1Debuff.FAQ || '暂无说明'}</p>
+      </div>
+    `;
+
+    html += `
+      <div class="faq-box">
+        <h3>${p2Name} Debuff 补充说明:</h3>
+        <p><strong>${p2Debuff.name}</strong></p>
+        <p style="margin-top:0.4rem;">${p2Debuff.FAQ || '暂无说明'}</p>
+      </div>
+    `;
+
+    faqContent.innerHTML = html;
   }
 
-  spinBtn.addEventListener('click', spin);
+  spinBtn.addEventListener('click', spinAll);
   resetBtn.addEventListener('click', resetDraw);
 
-  loadPrizes();
+  loadData();
 </script>
 </body>
 </html>
