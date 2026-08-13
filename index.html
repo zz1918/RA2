@@ -238,51 +238,81 @@
       wonDebuffs[1] = p1;
 
     } else {
-      // ================= 2v2 彩蛋与去重 =================
-      triggerSpecial = specialDebuffPool.length > 0 && Math.random() < 0.05; 
+      // ================= 2v2 模式 =================
+      // 1. 先行判定是否触发彩蛋
+      triggerSpecial = specialDebuffPool.length > 0 && Math.random() < 0.01; 
       const specialTargetGroup = Math.floor(Math.random() * 2); 
 
-      // ---- A组队员 ----
+      // 2. 核心修改：如果触发了彩蛋，直接创建一个“移除了所有 grouped”的临时普通池
+      let activeDebuffsPool = debuffsPool;
+      if (triggerSpecial) {
+        activeDebuffsPool = debuffsPool.filter(item => item.grouped !== true && item.grouped !== "true");
+        // 防御性安全阀：如果过滤完空了，就用回 fallback 池
+        if (activeDebuffsPool.length === 0) activeDebuffsPool = fallbackDebuffs;
+      }
+
+      // ---------------- 【第一队：选手0(A) 与 选手1(B)】 ----------------
       if (triggerSpecial && specialTargetGroup === 0) {
+        // 队1中了彩蛋！全队绑定彩蛋，不走普通池
         wonDebuffs[0] = specialDebuffPool[0];
-        wonDebuffs[2] = specialDebuffPool[0];
+        wonDebuffs[1] = specialDebuffPool[0];
       } else {
-        const p0 = getRandomItem(debuffsPool) || fallbackDebuffs[0];
+        // 正常抽取队1，使用过滤后的池子（如果队2中了彩蛋，这里已自动屏蔽 grouped）
+        const p0 = getRandomItem(activeDebuffsPool) || fallbackDebuffs[0];
         wonDebuffs[0] = p0;
         chosenIds.push(String(p0.id));
 
-        const p2Eligible = debuffsPool.filter(item => String(item.weight) === String(p0.weight) && !chosenIds.includes(String(item.id)));
-        const p2 = getRandomItem(p2Eligible) || getRandomItem(debuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[1]; 
-        wonDebuffs[2] = p2;
-        chosenIds.push(String(p2.id));
+        // 检查 选手0 是否带有 grouped: true 标签
+        if (p0.grouped === true || p0.grouped === "true") {
+          wonDebuffs[1] = p0;
+        } else {
+          const p0Bans = (p0 && Array.isArray(p0.ban)) ? p0.ban.map(String) : [];
+          const p1Eligible = activeDebuffsPool.filter(item => String(item.weight) === String(p0.weight) && !p0Bans.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
+          let p1 = getRandomItem(p1Eligible) || getRandomItem(activeDebuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[1];
+          
+          if (p1.grouped === true || p1.grouped === "true") {
+            wonDebuffs[0] = p1; 
+          }
+          wonDebuffs[1] = p1;
+          chosenIds.push(String(p1.id));
+        }
       }
 
-      // ---- B组队员 ----
+// ---------------- 【第二队：选手2(A) 与 选手3(B)】 ----------------
       if (triggerSpecial && specialTargetGroup === 1) {
-        wonDebuffs[1] = specialDebuffPool[0];
+        // 队2中了彩蛋！全队绑定彩蛋，不走普通池
+        wonDebuffs[2] = specialDebuffPool[0];
         wonDebuffs[3] = specialDebuffPool[0];
       } else {
-        const p0Weight = wonDebuffs[0] ? wonDebuffs[0].weight : 1; 
-        const p0Bans = (wonDebuffs[0] && Array.isArray(wonDebuffs[0].ban)) ? wonDebuffs[0].ban.map(String) : [];
-        const p1Eligible = debuffsPool.filter(item => String(item.weight) === String(p0Weight) && !p0Bans.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
-        const p1 = getRandomItem(p1Eligible) || getRandomItem(debuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[2];
-        wonDebuffs[1] = p1;
-        chosenIds.push(String(p1.id));
+        // 正常抽取队2，使用过滤后的池子
+        const p2EligiblePool = activeDebuffsPool.filter(item => !chosenIds.includes(String(item.id)));
+        const p2 = getRandomItem(p2EligiblePool) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[2];
+        wonDebuffs[2] = p2;
+        chosenIds.push(String(p2.id));
 
-        const p2Weight = wonDebuffs[2] ? wonDebuffs[2].weight : 1;
-        const p2Bans = (wonDebuffs[2] && Array.isArray(wonDebuffs[2].ban)) ? wonDebuffs[2].ban.map(String) : [];
-        const p3Eligible = debuffsPool.filter(item => String(item.weight) === String(p2Weight) && !p2Bans.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
-        const p3 = getRandomItem(p3Eligible) || getRandomItem(debuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[3];
-        wonDebuffs[3] = p3;
+        // 检查 选手2 是否带有 grouped: true 标签
+        if (p2.grouped === true || p2.grouped === "true") {
+          wonDebuffs[3] = p2;
+        } else {
+          const p2Bans = (p2 && Array.isArray(p2.ban)) ? p2.ban.map(String) : [];
+          // 修正这里的过滤与变量名调用
+          const p3Eligible = activeDebuffsPool.filter(item => String(item.weight) === String(p2.weight) && !p2Bans.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
+          let p3 = getRandomItem(p3Eligible) || getRandomItem(activeDebuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[3];
+          
+          if (p3.grouped === true || p3.grouped === "true") {
+            wonDebuffs[2] = p3;
+          }
+          wonDebuffs[3] = p3;
+          chosenIds.push(String(p3.id));
+        }
       }
     }
 
-    // 地图筛选与容错
+    // ================= 后续地图筛选与滚动动画逻辑 =================
     const requiredMinPlayers = Math.max(...wonDebuffs.map(d => d ? (Number(d.req_num) || 0) : 0));
     const eligibleMapsPool = mapsPool.filter(map => (Number(map.num) || 0) >= requiredMinPlayers);
     const wonMap = getRandomItem(eligibleMapsPool) || getRandomItem(mapsPool) || fallbackMaps[0];
 
-    // 动画执行控制
     let finishedCount = 0;
     const playerCount = wonDebuffs.length;
     const totalAnimations = 1 + playerCount;
@@ -298,10 +328,8 @@
 
     const animationPool = (triggerSpecial && specialDebuffPool.length > 0) ? [...debuffsPool, ...specialDebuffPool] : debuffsPool;
     
-    // 开始滚动地图
     animateReel(reelMap, mapsPool.map(m => m.name), wonMap.name, checkAllFinished);
 
-    // 开始滚动每位玩家的 Debuff
     for (let i = 0; i < playerCount; i++) {
       const reel = document.getElementById(`reel-p${i}`);
       if (reel) {
