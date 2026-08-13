@@ -269,7 +269,7 @@
       // ================= 2v2 跨队难度匹配模式 =================
       
       // 1. 判定是否触发彩蛋（最少间隔3局）
-      if (specialDebuffPool.length > 0 && Math.random() < 0.01 && specialCooldownCounter >= 3) {
+      if (specialDebuffPool.length > 0 && Math.random() < 0.1 && specialCooldownCounter >= 3) {
         triggerSpecial = true;
       }
       const specialTargetGroup = Math.floor(Math.random() * 2); 
@@ -285,7 +285,6 @@
       
       // ---------------- 【第一步：对位抽取 A 选手 (p0 和 p2)】 ----------------
       if (triggerSpecial && specialTargetGroup === 0) {
-        // 如果队伍1中了彩蛋，p0、p1提前内定，此时p2正常抽取
         wonDebuffs[0] = specialDebuffPool[0];
         wonDebuffs[1] = specialDebuffPool[0];
         
@@ -294,7 +293,6 @@
         chosenIds.push(String(wonDebuffs[2].id));
       } 
       else if (triggerSpecial && specialTargetGroup === 1) {
-        // 如果队伍2中了彩蛋，p2、p3提前内定，此时p0正常抽取
         const p0Pool = activeDebuffsPool.filter(item => !playerHistory.p0.includes(String(item.id)));
         wonDebuffs[0] = getRandomItem(p0Pool) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[0];
         chosenIds.push(String(wonDebuffs[0].id));
@@ -303,13 +301,10 @@
         wonDebuffs[3] = specialDebuffPool[0];
       } 
       else {
-        // 两队都没中彩蛋，正常进行 A 选手的跨队难度匹配
-        // (1) 先抽 队伍1-A (p0)
         const p0Pool = activeDebuffsPool.filter(item => !playerHistory.p0.includes(String(item.id)));
         wonDebuffs[0] = getRandomItem(p0Pool) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[0];
         chosenIds.push(String(wonDebuffs[0].id));
 
-        // (2) 匹配 队伍2-A (p2) -> 必须和 p0 权重相同、处理ban位、且不与前面抽出的重复、排除前3次历史
         const p0Bans = (wonDebuffs[0] && Array.isArray(wonDebuffs[0].ban)) ? wonDebuffs[0].ban.map(String) : [];
         const p2Eligible = activeDebuffsPool.filter(item => 
           !playerHistory.p2.includes(String(item.id)) &&
@@ -322,16 +317,13 @@
       }
 
       // ---------------- 【第二步：对位抽取 B 选手 (p1 和 p3)】 ----------------
-      // 如果触发了彩蛋且分配给了对应队伍，对应的B选手在前面已经被内定了，不需要重复抽取
       if (!(triggerSpecial && specialTargetGroup === 0)) {
-        // 抽取 队伍1-B (p1)
         const p1Pool = activeDebuffsPool.filter(item => !chosenIds.includes(String(item.id)) && !playerHistory.p1.includes(String(item.id)));
         wonDebuffs[1] = getRandomItem(p1Pool) || getRandomItem(activeDebuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[1];
         chosenIds.push(String(wonDebuffs[1].id));
       }
 
       if (!(triggerSpecial && specialTargetGroup === 1)) {
-        // 匹配 队伍2-B (p3) -> 必须和 p1 权重相同、处理ban位、去重、排除前3次历史
         const p1Bans = (wonDebuffs[1] && Array.isArray(wonDebuffs[1].ban)) ? wonDebuffs[1].ban.map(String) : [];
         const p3Eligible = activeDebuffsPool.filter(item => 
           !playerHistory.p3.includes(String(item.id)) &&
@@ -344,37 +336,107 @@
       }
 
       // ---------------- 【第三步：两队分别独立结算队内 grouped 传染标签】 ----------------
-      // 如果触发了彩蛋的队伍不需要结算，因为已经被彩蛋覆盖且临时池已滤掉 grouped
-      
-      // 结算 队伍1 (p0 和 p1)
+      let team1HasGroup = false;
+      let team2HasGroup = false;
+
       if (!(triggerSpecial && specialTargetGroup === 0)) {
         const p0Grouped = wonDebuffs[0].grouped === true || wonDebuffs[0].grouped === "true";
         const p1Grouped = wonDebuffs[1].grouped === true || wonDebuffs[1].grouped === "true";
         if (p0Grouped) {
-          wonDebuffs[1] = wonDebuffs[0]; // p0有标签，全队变p0（以第一个为准）
+          wonDebuffs[1] = wonDebuffs[0];
+          team1HasGroup = true;
         } else if (p1Grouped) {
-          wonDebuffs[0] = wonDebuffs[1]; // p0没有但p1有，全队变p1
+          wonDebuffs[0] = wonDebuffs[1];
+          team1HasGroup = true;
         }
       }
 
-      // 结算 队伍2 (p2 和 p3)
       if (!(triggerSpecial && specialTargetGroup === 1)) {
         const p2Grouped = wonDebuffs[2].grouped === true || wonDebuffs[2].grouped === "true";
         const p3Grouped = wonDebuffs[3].grouped === true || wonDebuffs[3].grouped === "true";
         if (p2Grouped) {
-          wonDebuffs[3] = wonDebuffs[2]; // p2有标签，全队变p2（以第一个为准）
+          wonDebuffs[3] = wonDebuffs[2];
+          team2HasGroup = true;
         } else if (p3Grouped) {
-          wonDebuffs[2] = wonDebuffs[3]; // p2没有但p3有，全队变p3
+          wonDebuffs[2] = wonDebuffs[3];
+          team2HasGroup = true;
         }
       }
 
-      // 4. 最终记录本次结果进选手各自的历史队列
+      // ---------------- 【新增第四步：跨队 Group 难度宏观微调限制】 ----------------
+      if (!triggerSpecial) { // 彩蛋局不参与此逻辑调控
+        const w1 = Number(wonDebuffs[0].weight) || 0;
+        const w2 = Number(wonDebuffs[2].weight) || 0;
+
+        if (team1HasGroup && team2HasGroup) {
+          // 情况 A：两队都是 Group，但难度权重不同
+          if (w1 !== w2) {
+            // 队伍2重新抽取难度和队伍1相同的 group debuff
+            const t2GroupEligible = activeDebuffsPool.filter(item => 
+              (item.grouped === true || item.grouped === "true") &&
+              Number(item.weight) === w1 &&
+              !playerHistory.p2.includes(String(item.id)) &&
+              !playerHistory.p3.includes(String(item.id))
+            );
+            // 如果池子里找到了相同权重的其他 group，则换成新的，否则直接强制同步为队伍1的debuff
+            const finalGroupDebuff = getRandomItem(t2GroupEligible) || wonDebuffs[0];
+            wonDebuffs[2] = finalGroupDebuff;
+            wonDebuffs[3] = finalGroupDebuff;
+          }
+        } 
+        else if (team1HasGroup) {
+          // 情况 B：仅队伍1是 Group，检查队伍2是否有人难度过高
+          // 检测 选手2 (p2)
+          if ((Number(wonDebuffs[2].weight) || 0) > w1) {
+            const p2ReEligible = activeDebuffsPool.filter(item => 
+              (Number(item.weight) || 0) <= w1 &&
+              !playerHistory.p2.includes(String(item.id)) &&
+              !chosenIds.includes(String(item.id))
+            );
+            wonDebuffs[2] = getRandomItem(p2ReEligible) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[2];
+          }
+          // 检测 选手3 (p3)
+          if ((Number(wonDebuffs[3].weight) || 0) > w1) {
+            const p3ReEligible = activeDebuffsPool.filter(item => 
+              (Number(item.weight) || 0) <= w1 &&
+              !playerHistory.p3.includes(String(item.id)) &&
+              !chosenIds.includes(String(item.id)) &&
+              String(item.id) !== String(wonDebuffs[2].id)
+            );
+            wonDebuffs[3] = getRandomItem(p3ReEligible) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[3];
+          }
+        } 
+        else if (team2HasGroup) {
+          // 情况 C：仅队伍2是 Group，检查队伍1是否有人难度过高
+          // 检测 选手0 (p0)
+          if ((Number(wonDebuffs[0].weight) || 0) > w2) {
+            const p0ReEligible = activeDebuffsPool.filter(item => 
+              (Number(item.weight) || 0) <= w2 &&
+              !playerHistory.p0.includes(String(item.id)) &&
+              !chosenIds.includes(String(item.id))
+            );
+            wonDebuffs[0] = getRandomItem(p0ReEligible) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[0];
+          }
+          // 检测 选手1 (p1)
+          if ((Number(wonDebuffs[1].weight) || 0) > w2) {
+            const p1ReEligible = activeDebuffsPool.filter(item => 
+              (Number(item.weight) || 0) <= w2 &&
+              !playerHistory.p1.includes(String(item.id)) &&
+              !chosenIds.includes(String(item.id)) &&
+              String(item.id) !== String(wonDebuffs[0].id)
+            );
+            wonDebuffs[1] = getRandomItem(p1ReEligible) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[1];
+          }
+        }
+      }
+
+      // 5. 最终记录本次结果进选手各自的历史队列
       updatePlayerHistory('p0', wonDebuffs[0].id);
       updatePlayerHistory('p1', wonDebuffs[1].id);
       updatePlayerHistory('p2', wonDebuffs[2].id);
       updatePlayerHistory('p3', wonDebuffs[3].id);
 
-      // 5. 更新彩蛋冷却计数器
+      // 6. 更新彩蛋冷却计数器
       if (triggerSpecial) {
         specialCooldownCounter = 0; 
       } else {
@@ -382,7 +444,7 @@
       }
     }
 
-    // ================= 后续地图筛选与滚动动画逻辑（保持不变） =================
+    // ================= 后续地图筛选与滚动动画逻辑 =================
     const requiredMinPlayers = Math.max(...wonDebuffs.map(d => d ? (Number(d.req_num) || 0) : 0));
     const eligibleMapsPool = mapsPool.filter(map => (Number(map.num) || 0) >= requiredMinPlayers);
     const wonMap = getRandomItem(eligibleMapsPool) || getRandomItem(mapsPool) || fallbackMaps[0];
