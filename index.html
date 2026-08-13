@@ -254,7 +254,7 @@
     let triggerSpecial = false;
 
     if (currentMode === '1v1') {
-      // ================= 1v1 模式 =================
+      // ================= 1v1 模式（保持不变） =================
       const p0Pool = debuffsPool.filter(item => !playerHistory.p0.includes(String(item.id)));
       const p0 = getRandomItem(p0Pool) || getRandomItem(debuffsPool) || fallbackDebuffs[0];
       wonDebuffs[0] = p0;
@@ -355,7 +355,7 @@
         wonDebuffs[3] = getRandomItem(p3Eligible) || getRandomItem(activeDebuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[3];
         chosenIds.push(String(wonDebuffs[3].id));
 
-        // 队内 grouped 传染
+        // 【核心第三步：第一轮队内 grouped 传染结算】
         let team1HasGroup = false;
         let team2HasGroup = false;
 
@@ -387,23 +387,57 @@
           }
         } 
         else if (team1HasGroup) {
+          // 情况 B：仅队伍1是 Group，检查队伍2是否有人难度过高并重抽
+          let p2ReSpun = false;
+          let p3ReSpun = false;
+
           if ((Number(wonDebuffs[2].weight) || 0) > w1) {
             const p2ReEligible = activeDebuffsPool.filter(item => (Number(item.weight) || 0) <= w1 && !playerHistory.p2.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
             wonDebuffs[2] = getRandomItem(p2ReEligible) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[2];
+            p2ReSpun = true;
           }
           if ((Number(wonDebuffs[3].weight) || 0) > w1) {
             const p3ReEligible = activeDebuffsPool.filter(item => (Number(item.weight) || 0) <= w1 && !playerHistory.p3.includes(String(item.id)) && !chosenIds.includes(String(item.id)) && String(item.id) !== String(wonDebuffs[2].id));
             wonDebuffs[3] = getRandomItem(p3ReEligible) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[3];
+            p3ReSpun = true;
+          }
+
+          // 【新增逻辑】：如果队伍2进行了重抽，检测重抽后是否触发了新的 Group 感染
+          if (p2ReSpun || p3ReSpun) {
+            const newP2Grouped = wonDebuffs[2].grouped === true || wonDebuffs[2].grouped === "true";
+            const newP3Grouped = wonDebuffs[3].grouped === true || wonDebuffs[3].grouped === "true";
+            if (newP2Grouped) {
+              wonDebuffs[3] = wonDebuffs[2]; // p2触发感染，全队同化，不重复检测难度
+            } else if (newP3Grouped) {
+              wonDebuffs[2] = wonDebuffs[3]; // p3触发感染，全队同化，不重复检测难度
+            }
           }
         } 
         else if (team2HasGroup) {
+          // 情况 C：仅队伍2是 Group，检查队伍1是否有人难度过高并重抽
+          let p0ReSpun = false;
+          let p1ReSpun = false;
+
           if ((Number(wonDebuffs[0].weight) || 0) > w2) {
             const p0ReEligible = activeDebuffsPool.filter(item => (Number(item.weight) || 0) <= w2 && !playerHistory.p0.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
             wonDebuffs[0] = getRandomItem(p0ReEligible) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[0];
+            p0ReSpun = true;
           }
           if ((Number(wonDebuffs[1].weight) || 0) > w2) {
             const p1ReEligible = activeDebuffsPool.filter(item => (Number(item.weight) || 0) <= w2 && !playerHistory.p1.includes(String(item.id)) && !chosenIds.includes(String(item.id)) && String(item.id) !== String(wonDebuffs[0].id));
             wonDebuffs[1] = getRandomItem(p1ReEligible) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[1];
+            p1ReSpun = true;
+          }
+
+          // 【新增逻辑】：如果队伍1进行了重抽，检测重抽后是否触发了新的 Group 感染
+          if (p0ReSpun || p1ReSpun) {
+            const newP0Grouped = wonDebuffs[0].grouped === true || wonDebuffs[0].grouped === "true";
+            const newP1Grouped = wonDebuffs[1].grouped === true || wonDebuffs[1].grouped === "true";
+            if (newP0Grouped) {
+              wonDebuffs[1] = wonDebuffs[0]; // p0触发感染，全队同化
+            } else if (newP1Grouped) {
+              wonDebuffs[0] = wonDebuffs[1]; // p1触发感染，全队同化
+            }
           }
         }
       }
@@ -422,21 +456,14 @@
       }
     }
 
-    // ==================== 【优化：新增地图20次去重历史过滤逻辑】 ====================
+    // ==================== 地图20次去重历史过滤逻辑（保持不变） ====================
     const requiredMinPlayers = Math.max(...wonDebuffs.map(d => d ? (Number(d.req_num) || 0) : 0));
-    // 1. 过滤人数符合要求的地图基础池
     const baseMapsPool = mapsPool.filter(map => (Number(map.num) || 0) >= requiredMinPlayers);
-    
-    // 2. 在符合人数的池子基础上，进一步过滤掉最近 20 次抽过的地图
     const filteredMapsPool = baseMapsPool.filter(map => !mapHistory.includes(String(map.id)));
-    
-    // 3. 确定最终地图：优先从防重复池抽，如果没有剩余则从人数匹配池盲抽，最后使用后备数据兜底
     const wonMap = getRandomItem(filteredMapsPool) || getRandomItem(baseMapsPool) || getRandomItem(mapsPool) || fallbackMaps[0];
-    
-    // 4. 将本次抽中地图的 ID 推入历史防重复队列
     updateMapHistory(wonMap.id);
 
-    // ================= 后续滚动动画逻辑 =================
+    // ================= 后续滚动动画逻辑（保持不变） =================
     let finishedCount = 0;
     const playerCount = wonDebuffs.length;
     const totalAnimations = 1 + playerCount;
