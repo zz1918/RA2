@@ -88,7 +88,20 @@
   let debuffsPool = [];
   let specialDebuffPool = []; 
   let isSpinning = false;
-  const ITEM_HEIGHT = 70;
+  const ITEM_HEIGHT = 70; // 已修正为70
+
+  // ==================== 新增：历史记录状态 ====================
+  // 记录每个位置选手最近3次的debuff id。1v1用前2个，2v2用全部4个。
+  // 数据结构：{ p0: [id, id, id], p1: [...], ... }
+  const playerHistory = {
+    p0: [],
+    p1: [],
+    p2: [],
+    p3: []
+  };
+  // 全局彩蛋冷却计数器：记录距离上一次【触发彩蛋并完成】过去了多少局数
+  // 初始设为 3，代表第一局就可以有概率触发
+  let specialCooldownCounter = 3; 
 
   const spinBtn = document.getElementById('spinBtn');
   const resetBtn = document.getElementById('resetBtn');
@@ -189,11 +202,19 @@
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
+  // 新增：维护历史记录队列的方法（最多保留3个）
+  function updatePlayerHistory(playerKey, debuffId) {
+    if (!debuffId) return;
+    playerHistory[playerKey].push(String(debuffId));
+    if (playerHistory[playerKey].length > 3) {
+      playerHistory[playerKey].shift(); // 弹出最早的一次
+    }
+  }
+
   function animateReel(reel, allNames, targetName, callback) {
     const spinSequence = [];
     const totalItemsInSpin = 25;
     
-    // 防错：如果池子只有1个名字，强行塞入通用等待字符避免生成失败
     const safeNames = allNames.length > 0 ? allNames : [targetName];
 
     for (let i = 0; i < totalItemsInSpin - 1; i++) {
@@ -205,7 +226,7 @@
     reel.style.transform = 'translateY(0px)';
     reel.innerHTML = spinSequence.map(name => `<div class="slot-item">${name}</div>`).join('');
 
-    reel.offsetHeight; // 强制触发重绘
+    reel.offsetHeight; 
 
     const targetY = -((spinSequence.length - 1) * ITEM_HEIGHT);
     reel.style.transition = 'transform 3s cubic-bezier(0.15, 0.85, 0.35, 1.0)';
@@ -224,13 +245,17 @@
     let triggerSpecial = false;
 
     if (currentMode === '1v1') {
-      // ================= 1v1 纯净去重 =================
-      const p0 = getRandomItem(debuffsPool) || fallbackDebuffs[0];
+      // ================= 1v1 模式（含3次历史过滤） =================
+      // 过滤选手0前3次数据
+      const p0Pool = debuffsPool.filter(item => !playerHistory.p0.includes(String(item.id)));
+      const p0 = getRandomItem(p0Pool) || getRandomItem(debuffsPool) || fallbackDebuffs[0];
       wonDebuffs[0] = p0;
       chosenIds.push(String(p0.id));
 
+      // 过滤选手1前3次数据以及同局去重
       const p1Eligible = debuffsPool.filter(item => {
-        return String(item.weight) === String(p0.weight) && 
+        return !playerHistory.p1.includes(String(item.id)) &&
+               String(item.weight) === String(p0.weight) && 
                !((p0.ban || []).map(String).includes(String(item.id))) && 
                !chosenIds.includes(String(item.id));
       });
@@ -238,37 +263,52 @@
       const p1 = getRandomItem(p1Eligible) || getRandomItem(debuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[1];
       wonDebuffs[1] = p1;
 
+      // 更新历史记录
+      updatePlayerHistory('p0', wonDebuffs[0].id);
+      updatePlayerHistory('p1', wonDebuffs[1].id);
+      
+      // 1v1 模式下彩蛋冷却局数正常递增
+      specialCooldownCounter++;
+
     } else {
-      // ================= 2v2 模式 =================
-      // 1. 先行判定是否触发彩蛋
-      triggerSpecial = specialDebuffPool.length > 0 && Math.random() < 0.01; 
+      // ================= 2v2 模式（含3次历史过滤与彩蛋间隔控制） =================
+      
+      // 1. 判定是否触发彩蛋（要求：彩蛋池不为空、随机中签、且距离上次触发已满3局）
+      if (specialDebuffPool.length > 0 && Math.random() < 0.01 && specialCooldownCounter >= 3) {
+        triggerSpecial = true;
+      }
       const specialTargetGroup = Math.floor(Math.random() * 2); 
 
-      // 2. 核心修改：如果触发了彩蛋，直接创建一个“移除了所有 grouped”的临时普通池
+      // 2. 如果触发了彩蛋，创建一个“移除了所有 grouped”的临时普通池
       let activeDebuffsPool = debuffsPool;
       if (triggerSpecial) {
         activeDebuffsPool = debuffsPool.filter(item => item.grouped !== true && item.grouped !== "true");
-        // 防御性安全阀：如果过滤完空了，就用回 fallback 池
         if (activeDebuffsPool.length === 0) activeDebuffsPool = fallbackDebuffs;
       }
 
-      // ---------------- 【第一队：选手0(A) 与 选手1(B)】 ----------------
+      // ---------------- 【第一队：选手0(p0) 与 选手1(p1)】 ----------------
       if (triggerSpecial && specialTargetGroup === 0) {
-        // 队1中了彩蛋！全队绑定彩蛋，不走普通池
+        // 队1中了彩蛋！
         wonDebuffs[0] = specialDebuffPool[0];
         wonDebuffs[1] = specialDebuffPool[0];
       } else {
-        // 正常抽取队1，使用过滤后的池子（如果队2中了彩蛋，这里已自动屏蔽 grouped）
-        const p0 = getRandomItem(activeDebuffsPool) || fallbackDebuffs[0];
+        // 正常抽取队1：过滤选手0的前3次历史记录
+        const p0Pool = activeDebuffsPool.filter(item => !playerHistory.p0.includes(String(item.id)));
+        const p0 = getRandomItem(p0Pool) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[0];
         wonDebuffs[0] = p0;
         chosenIds.push(String(p0.id));
 
-        // 检查 选手0 是否带有 grouped: true 标签
         if (p0.grouped === true || p0.grouped === "true") {
           wonDebuffs[1] = p0;
         } else {
+          // 过滤选手1的前3次历史记录
           const p0Bans = (p0 && Array.isArray(p0.ban)) ? p0.ban.map(String) : [];
-          const p1Eligible = activeDebuffsPool.filter(item => String(item.weight) === String(p0.weight) && !p0Bans.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
+          const p1Eligible = activeDebuffsPool.filter(item => 
+            !playerHistory.p1.includes(String(item.id)) &&
+            String(item.weight) === String(p0.weight) && 
+            !p0Bans.includes(String(item.id)) && 
+            !chosenIds.includes(String(item.id))
+          );
           let p1 = getRandomItem(p1Eligible) || getRandomItem(activeDebuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[1];
           
           if (p1.grouped === true || p1.grouped === "true") {
@@ -279,25 +319,29 @@
         }
       }
 
-// ---------------- 【第二队：选手2(A) 与 选手3(B)】 ----------------
+      // ---------------- 【第二队：选手2(p2) 与 选手3(p3)】 ----------------
       if (triggerSpecial && specialTargetGroup === 1) {
-        // 队2中了彩蛋！全队绑定彩蛋，不走普通池
+        // 队2中了彩蛋！
         wonDebuffs[2] = specialDebuffPool[0];
         wonDebuffs[3] = specialDebuffPool[0];
       } else {
-        // 正常抽取队2，使用过滤后的池子
-        const p2EligiblePool = activeDebuffsPool.filter(item => !chosenIds.includes(String(item.id)));
-        const p2 = getRandomItem(p2EligiblePool) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[2];
+        // 正常抽取队2：过滤选手2的前3次历史记录
+        const p2Pool = activeDebuffsPool.filter(item => !chosenIds.includes(String(item.id)) && !playerHistory.p2.includes(String(item.id)));
+        const p2 = getRandomItem(p2Pool) || getRandomItem(activeDebuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[2];
         wonDebuffs[2] = p2;
         chosenIds.push(String(p2.id));
 
-        // 检查 选手2 是否带有 grouped: true 标签
         if (p2.grouped === true || p2.grouped === "true") {
           wonDebuffs[3] = p2;
         } else {
+          // 过滤选手3的前3次历史记录
           const p2Bans = (p2 && Array.isArray(p2.ban)) ? p2.ban.map(String) : [];
-          // 修正这里的过滤与变量名调用
-          const p3Eligible = activeDebuffsPool.filter(item => String(item.weight) === String(p2.weight) && !p2Bans.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
+          const p3Eligible = activeDebuffsPool.filter(item => 
+            !playerHistory.p3.includes(String(item.id)) &&
+            String(item.weight) === String(p2.weight) && 
+            !p2Bans.includes(String(item.id)) && 
+            !chosenIds.includes(String(item.id))
+          );
           let p3 = getRandomItem(p3Eligible) || getRandomItem(activeDebuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[3];
           
           if (p3.grouped === true || p3.grouped === "true") {
@@ -306,6 +350,19 @@
           wonDebuffs[3] = p3;
           chosenIds.push(String(p3.id));
         }
+      }
+
+      // 记录本次结果进选手各自的历史队列
+      updatePlayerHistory('p0', wonDebuffs[0].id);
+      updatePlayerHistory('p1', wonDebuffs[1].id);
+      updatePlayerHistory('p2', wonDebuffs[2].id);
+      updatePlayerHistory('p3', wonDebuffs[3].id);
+
+      // 处理彩蛋冷却计数器
+      if (triggerSpecial) {
+        specialCooldownCounter = 0; // 刚刚触发了彩蛋，清零冷却
+      } else {
+        specialCooldownCounter++; // 普通局，冷却局数自增
       }
     }
 
