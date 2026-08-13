@@ -16,417 +16,187 @@
       --border: #334155;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: system-ui, -apple-system, sans-serif;
-    }
-
-    body {
-      background-color: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      padding: 2rem;
-    }
-
-    /* 网站大标题 */
-    .site-title {
-      font-size: 2.5rem;
-      font-weight: 800;
-      color: #fff;
-      margin-bottom: 2rem;
-      text-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
-      text-align: center;
-    }
-
-    .app-container {
-      display: grid;
-      grid-template-columns: 1fr 350px;
-      gap: 2rem;
-      width: 100%;
-      max-width: 1500px;
-      background: var(--card-bg);
-      padding: 2rem;
-      border-radius: 16px;
-      border: 1px solid var(--border);
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    }
-
-    @media (max-width: 968px) {
-      .app-container {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    /* 抽取栏区域 */
-    .slot-section {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1.5rem;
-    }
-
-    .row-container {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .slot-row {
-      width: 100%;
-    }
-
-    .row-title {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 0.4rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-    }
-
-    /* 可输入选手名输入框样式 */
-    .inline-player-input {
-      width: 110px;
-      padding: 0.2rem 0.5rem;
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: var(--accent);
-      font-size: 1.05rem;
-      font-weight: 700;
-      outline: none;
-      transition: border-color 0.2s ease, width 0.2s ease;
-      text-align: center;
-    }
-
-    .inline-player-input:focus {
-      border-color: var(--primary);
-      width: 150px;
-    }
-
-    /* 滚动槽窗口 */
-    .slot-window {
-      position: relative;
-      width: 100%;
-      height: 90px;
-      background: #090d16;
-      border: 3px solid var(--border);
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.8);
-      transition: border-color 0.3s;
-    }
-
-    .slot-window.active {
-      border-color: var(--primary);
-    }
-
-    /* 居中指示线 */
-    .slot-window::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      border-top: 20px solid rgba(9, 13, 22, 0.6);
-      border-bottom: 20px solid rgba(9, 13, 22, 0.6);
-      z-index: 2;
-      pointer-events: none;
-    }
-
-    .slot-window::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 0;
-      right: 0;
-      height: 50px;
-      transform: translateY(-50%);
-      border-top: 2px solid var(--accent);
-      border-bottom: 2px solid var(--accent);
-      z-index: 3;
-      pointer-events: none;
-    }
-
-    .slot-reel {
-      display: flex;
-      flex-direction: column;
-      position: absolute;
-      width: 100%;
-      top: 0;
-      left: 0;
-      will-change: transform;
-    }
-
-    .slot-item {
-      height: 50px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: #fff;
-      text-align: center;
-      padding: 0 1rem;
-      padding-top: 2px;
-    }
-
-    /* 调整初始提示垂直居中偏下位置 */
-    .slot-reel > .slot-item:first-child {
-      padding-top: 20px;
-    }
-
-    /* 控制按钮 */
-    .controls {
-      display: flex;
-      gap: 1rem;
-      width: 100%;
-      margin-top: 1rem;
-    }
-
-    button {
-      flex: 1;
-      padding: 0.85rem 1.5rem;
-      font-size: 1rem;
-      font-weight: 600;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .btn-spin {
-      background-color: var(--primary);
-      color: white;
-    }
-
-    .btn-spin:hover:not(:disabled) {
-      background-color: var(--primary-hover);
-      transform: translateY(-1px);
-    }
-
-    .btn-spin:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .btn-reset {
-      background-color: transparent;
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      flex: 0.3;
-    }
-
-    .btn-reset:hover {
-      background-color: rgba(255, 255, 255, 0.05);
-      color: var(--text);
-    }
-
-    /* FAQ 区域 */
-    .faq-section {
-      border-left: 1px solid var(--border);
-      padding-left: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-      overflow-y: auto;
-      max-height: 500px;
-    }
-
-    @media (max-width: 968px) {
-      .faq-section {
-        border-left: none;
-        border-top: 1px solid var(--border);
-        padding-left: 0;
-        padding-top: 1.5rem;
-      }
-    }
-
-    .faq-title {
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: var(--text);
-      border-bottom: 2px solid var(--border);
-      padding-bottom: 0.5rem;
-    }
-
-    .faq-box {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid var(--border);
-      padding: 1rem;
-      border-radius: 8px;
-    }
-
-    .faq-box h3 {
-      font-size: 0.95rem;
-      color: var(--accent);
-      margin-bottom: 0.5rem;
-    }
-
-    .faq-box p {
-      font-size: 0.9rem;
-      color: var(--text-muted);
-      line-height: 1.5;
-      white-space: pre-line;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+    .nav-tabs { display: flex; width: 100%; background: #090d16; border-bottom: 1px solid var(--border); justify-content: center; }
+    .tab-button { background: transparent; color: var(--text-muted); padding: 1rem 2.5rem; font-size: 1.1rem; font-weight: 700; border: none; border-bottom: 3px solid transparent; cursor: pointer; transition: all 0.2s ease; }
+    .tab-button.active { color: var(--primary); border-bottom-color: var(--primary); background: rgba(99, 102, 241, 0.05); }
+    .main-content { width: 100%; max-width: 1500px; padding: 2rem; display: flex; flex-direction: column; align-items: center; }
+    .site-title { font-size: 2.5rem; font-weight: 800; margin-bottom: 2rem; text-shadow: 0 0 15px rgba(99, 102, 241, 0.5); }
+    .app-container { display: grid; grid-template-columns: 1fr 350px; gap: 2rem; width: 100%; background: var(--card-bg); padding: 2rem; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+    @media (max-width: 968px) { .app-container { grid-template-columns: 1fr; } }
+    .slot-section { display: flex; flex-direction: column; align-items: center; gap: 1.5rem; width: 100%; }
+    .row-container { width: 100%; display: flex; flex-direction: column; gap: 1rem; }
+    .slot-window { position: relative; width: 100%; height: 90px; background: #090d16; border: 3px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .slot-window::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; border-top: 20px solid rgba(9, 13, 22, 0.6); border-bottom: 20px solid rgba(9, 13, 22, 0.6); z-index: 2; pointer-events: none; }
+    .slot-window::after { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 50px; transform: translateY(-50%); border-top: 2px solid var(--accent); border-bottom: 2px solid var(--accent); z-index: 3; pointer-events: none; }
+    .slot-reel { display: flex; flex-direction: column; position: absolute; width: 100%; top: 0; left: 0; will-change: transform; }
+    .slot-item { height: 50px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 600; color: #fff; text-align: center; padding: 0 1rem; padding-top: 20px; }
+    .controls { display: flex; gap: 1rem; width: 100%; margin-top: 1rem; }
+    .btn-spin { background-color: var(--primary); color: white; flex: 1; padding: 0.85rem; font-size: 1rem; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; }
+    .btn-spin:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-reset { background-color: transparent; border: 1px solid var(--border); color: var(--text-muted); flex: 0.3; border-radius: 8px; cursor: pointer; }
+    .faq-section { border-left: 1px solid var(--border); padding-left: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+    .faq-title { font-size: 1.2rem; font-weight: 700; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; }
+    .faq-box { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+    .faq-box h3 { font-size: 0.95rem; color: var(--accent); margin-bottom: 0.5rem; }
+    .inline-player-input { width: 120px; padding: 0.2rem; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border); border-radius: 6px; color: var(--accent); font-weight: 700; text-align: center; outline: none; }
+    .row-title { font-size: 1.1rem; color: var(--text-muted); margin-bottom: 0.4rem; }
   </style>
 </head>
 <body>
 
-<h1 class="site-title">🎮 公平的双人Debuff抽取系统</h1>
+<div class="nav-tabs">
+  <button class="tab-button active" id="tab-1v1" onclick="switchMode('1v1')">⚔️ 1v1 模式</button>
+  <button class="tab-button" id="tab-2v2" onclick="switchMode('2v2')">⚔️⚔️ 2v2 模式</button>
+</div>
 
-<div class="app-container">
-  <!-- 抽取主区域 -->
-  <div class="slot-section">
-    <div class="row-container">
-      <!-- 1. 地图抽取栏 -->
-      <div class="slot-row">
-        <div class="row-title">🗺️ 比赛地图：</div>
-        <div class="slot-window active" id="window-map">
-          <div class="slot-reel" id="reel-map">
-            <div class="slot-item">等待抽取比赛地图...</div>
+<div class="main-content">
+  <h1 class="site-title" id="siteTitle">🎮 公平的双人Debuff抽取系统 (1v1)</h1>
+
+  <div class="app-container">
+    <div class="slot-section">
+      <div class="row-container">
+        <div class="slot-row">
+          <div class="row-title">🗺️ 比赛地图：</div>
+          <div class="slot-window" id="window-map">
+            <div class="slot-reel" id="reel-map"><div class="slot-item">等待抽取比赛地图...</div></div>
           </div>
         </div>
+        <div id="playersReelsContainer"></div>
       </div>
 
-      <!-- 2. 选手A抽取栏 -->
-      <div class="slot-row">
-        <div class="row-title">
-          👤 <input type="text" id="player1Name" class="inline-player-input" value="选手 A" placeholder="输入名字" /> 的 Debuff 提示：
-        </div>
-        <div class="slot-window active" id="window-p1">
-          <div class="slot-reel" id="reel-p1">
-            <div class="slot-item">等待抽取 debuff...</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 3. 选手B抽取栏 -->
-      <div class="slot-row">
-        <div class="row-title">
-          👤 <input type="text" id="player2Name" class="inline-player-input" value="选手 B" placeholder="输入名字" /> 的 Debuff 提示：
-        </div>
-        <div class="slot-window active" id="window-p2">
-          <div class="slot-reel" id="reel-p2">
-            <div class="slot-item">等待抽取 debuff...</div>
-          </div>
-        </div>
+      <div class="controls">
+        <button class="btn-spin" id="spinBtn">摇一摇！</button>
+        <button class="btn-reset" id="resetBtn">重置</button>
       </div>
     </div>
 
-    <div class="controls">
-      <button class="btn-spin" id="spinBtn">摇一摇！</button>
-      <button class="btn-reset" id="resetBtn">重置</button>
-    </div>
-  </div>
-
-  <!-- FAQ 区域 -->
-  <div class="faq-section">
-    <h2 class="faq-title">💡 当前 Debuff 规则答疑 (FAQ)</h2>
-    <div id="faq-content">
-      <p style="color: var(--text-muted); font-style: italic;">暂无抽取的 Debuff 规则说明。</p>
+    <div class="faq-section">
+      <h2 class="faq-title">💡 当前 Debuff 规则答疑 (FAQ)</h2>
+      <div id="faq-content">
+        <p style="color: var(--text-muted); font-style: italic;">暂无抽取的 Debuff 规则说明。</p>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
+  let currentMode = '1v1';
   let mapsPool = [];
   let debuffsPool = [];
+  let specialDebuffPool = []; 
   let isSpinning = false;
+  const ITEM_HEIGHT = 50;
 
-  const ITEM_HEIGHT = 50; 
-
-  // 获取 DOM 元素
   const spinBtn = document.getElementById('spinBtn');
   const resetBtn = document.getElementById('resetBtn');
   const reelMap = document.getElementById('reel-map');
-  const reelP1 = document.getElementById('reel-p1');
-  const reelP2 = document.getElementById('reel-p2');
   const faqContent = document.getElementById('faq-content');
-  const player1Input = document.getElementById('player1Name');
-  const player2Input = document.getElementById('player2Name');
+  const playersContainer = document.getElementById('playersReelsContainer');
+  const siteTitle = document.getElementById('siteTitle');
 
-  // 后备保障数据
-  const fallbackMaps = [{ id: 1, name: " [后备] 月球巡礼" }];
-  const fallbackDebuffs = [{ id: 1, name: " [后备] 禁止使用鼠标", weight: 1, FAQ: "无" }];
+  // 完美防卡死后备数据
+  const fallbackMaps = [{ id: 1, name: " [后备] 月球巡礼", num: 2 }];
+  const fallbackDebuffs = [
+    { id: 1, name: " [后备] 禁止使用鼠标", weight: 1, FAQ: "只能用纯键盘操作游戏。", ban: [], req_num: 2 },
+    { id: 2, name: " [后备] 禁止打开屏幕", weight: 1, FAQ: "请闭眼或者关掉显示器。", ban: [], req_num: 2 },
+    { id: 3, name: " [后备] 禁止眨眼", weight: 1, FAQ: "眨眼算输，坚持住！", ban: [], req_num: 2 },
+    { id: 4, name: " [后备] 禁止上厕所", weight: 1, FAQ: "打完这局再去！", ban: [], req_num: 2 }
+  ];
 
-  // 初始化加载外部 JSON
+  const defaultNames = {
+    '1v1': ['选手 A', '选手 B'],
+    '2v2': ['队伍1-选手A', '队伍1-选手B', '队伍2-选手A', '队伍2-选手B']
+  };
+
+  function renderPlayerSlots() {
+    const names = defaultNames[currentMode];
+    let html = '';
+    names.forEach((name, index) => {
+      html += `
+        <div class="slot-row" style="margin-top: 1rem;">
+          <div class="row-title">
+            👤 <input type="text" id="player${index}Name" class="inline-player-input" value="${name}" /> 的 Debuff：
+          </div>
+          <div class="slot-window" id="window-p${index}">
+            <div class="slot-reel" id="reel-p${index}">
+              <div class="slot-item">等待抽取 debuff...</div>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    playersContainer.innerHTML = html;
+  }
+
+  async function switchMode(mode) {
+    if (isSpinning) return;
+    currentMode = mode;
+    document.getElementById('tab-1v1').classList.toggle('active', mode === '1v1');
+    document.getElementById('tab-2v2').classList.toggle('active', mode === '2v2');
+    siteTitle.innerText = mode === '1v1' ? '🎮 公平的双人Debuff抽取系统 (1v1)' : '🎮 公平的四人Debuff抽取系统 (2v2)';
+    renderPlayerSlots();
+    await loadData();
+  }
+
   async function loadData() {
+    const mapFile = currentMode === '1v1' ? 'map.json' : 'map2.json';
+    const debuffFile = currentMode === '1v1' ? 'debuff.json' : 'debuff2.json';
+
     try {
       const [mapsRes, debuffsRes] = await Promise.all([
-        fetch('map.json').then(r => r.ok ? r.json() : fallbackMaps),
-        fetch('debuff.json').then(r => r.ok ? r.json() : fallbackDebuffs)
+        fetch(mapFile).then(r => r.ok ? r.json() : fallbackMaps).catch(() => fallbackMaps),
+        fetch(debuffFile).then(r => r.ok ? r.json() : fallbackDebuffs).catch(() => fallbackDebuffs)
       ]);
-      mapsPool = mapsRes;
-      debuffsPool = debuffsRes;
+      mapsPool = (Array.isArray(mapsRes) && mapsRes.length > 0) ? mapsRes : fallbackMaps;
+      debuffsPool = (Array.isArray(debuffsRes) && debuffsRes.length > 0) ? debuffsRes : fallbackDebuffs;
+
+      if (currentMode === '2v2') {
+        specialDebuffPool = await fetch('debuff2s.json').then(r => r.ok ? r.json() : []).catch(() => []);
+      } else {
+        specialDebuffPool = [];
+      }
     } catch (err) {
-      console.warn('读取配置文件失败，使用后备保障数据', err);
       mapsPool = fallbackMaps;
       debuffsPool = fallbackDebuffs;
+      specialDebuffPool = [];
     }
     resetDraw();
   }
 
-  // 重置界面与状态
   function resetDraw() {
     if (isSpinning) return;
-    
-    // 重置地图滚轮
     reelMap.style.transition = 'none';
     reelMap.style.transform = 'translateY(0px)';
     reelMap.innerHTML = '<div class="slot-item">等待抽取比赛地图...</div>';
 
-    // 重置选手1滚轮
-    reelP1.style.transition = 'none';
-    reelP1.style.transform = 'translateY(0px)';
-    reelP1.innerHTML = '<div class="slot-item">等待抽取 debuff...</div>';
-
-    // 重置选手2滚轮
-    reelP2.style.transition = 'none';
-    reelP2.style.transform = 'translateY(0px)';
-    reelP2.innerHTML = '<div class="slot-item">等待抽取 debuff...</div>';
-
-    // 重置FAQ
+    defaultNames[currentMode].forEach((_, i) => {
+      const reel = document.getElementById(`reel-p${i}`);
+      if (reel) {
+        reel.style.transition = 'none';
+        reel.style.transform = 'translateY(0px)';
+        reel.innerHTML = '<div class="slot-item">等待抽取 debuff...</div>';
+      }
+    });
     faqContent.innerHTML = '<p style="color: var(--text-muted); font-style: italic;">暂无抽取的 Debuff 规则说明。</p>';
     spinBtn.disabled = false;
   }
 
-    // 纯随机抽取算法（等概率抽取）
   function getRandomItem(pool) {
     if (!pool || pool.length === 0) return null;
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
-  // 权重随机抽取算法
-  function getRandomWeightedItem(pool) {
-    const totalWeight = pool.reduce((sum, item) => sum + (Number(item.weight) || 1), 0);
-    let random = Math.random() * totalWeight;
-    for (const item of pool) {
-      const w = Number(item.weight) || 1;
-      if (random < w) return item;
-      random -= w;
-    }
-    return pool[pool.length - 1];
-  }
-
-  // 单个滚轮的滚动动画处理函数
   function animateReel(reel, allNames, targetName, callback) {
     const spinSequence = [];
-    const totalItemsInSpin = 30;
+    const totalItemsInSpin = 25;
+    
+    // 防错：如果池子只有1个名字，强行塞入通用等待字符避免生成失败
+    const safeNames = allNames.length > 0 ? allNames : [targetName];
 
     for (let i = 0; i < totalItemsInSpin - 1; i++) {
-      const randomName = allNames[Math.floor(Math.random() * allNames.length)];
-      spinSequence.push(randomName);
+      spinSequence.push(safeNames[Math.floor(Math.random() * safeNames.length)]);
     }
     spinSequence.push(targetName);
 
@@ -434,116 +204,136 @@
     reel.style.transform = 'translateY(0px)';
     reel.innerHTML = spinSequence.map(name => `<div class="slot-item">${name}</div>`).join('');
 
-    reel.offsetHeight; 
+    reel.offsetHeight; // 强制触发重绘
 
-    const targetY = -((spinSequence.length - 1) * ITEM_HEIGHT) + 20;
-
-    reel.style.transition = 'transform 3.5s cubic-bezier(0.15, 0.85, 0.35, 1.0)';
+    const targetY = -((spinSequence.length - 1) * ITEM_HEIGHT);
+    reel.style.transition = 'transform 3s cubic-bezier(0.15, 0.85, 0.35, 1.0)';
     reel.style.transform = `translateY(${targetY}px)`;
 
-    setTimeout(callback, 3600);
+    setTimeout(callback, 3100);
   }
 
-  // 开始同时抽取
   function spinAll() {
     if (isSpinning) return;
-    if (!mapsPool || mapsPool.length === 0 || !debuffsPool || debuffsPool.length === 0) {
-      alert("抽签池数据为空，请确认外部 json 文件存在并格式正确。");
-      return;
-    }
-
     isSpinning = true;
     spinBtn.disabled = true;
 
-    // =================【第一步：先抽选手 A 的 debuff（纯等概率盲抽）】=================
-    const wonDebuffP1 = getRandomItem(debuffsPool);
+    const wonDebuffs = new Array(defaultNames[currentMode].length);
+    let chosenIds = []; 
+    let triggerSpecial = false;
 
-    // =================【第二步：再抽选手 B 的 debuff（纯等概率盲抽）】=================
-    const targetWeight = wonDebuffP1.weight;
-    const banIdsByP1 = Array.isArray(wonDebuffP1.ban) ? wonDebuffP1.ban : []; 
+    if (currentMode === '1v1') {
+      // ================= 1v1 纯净去重 =================
+      const p0 = getRandomItem(debuffsPool) || fallbackDebuffs[0];
+      wonDebuffs[0] = p0;
+      chosenIds.push(String(p0.id));
 
-    // 筛选：必须和 A 相同的 weight，且不能在 A 的 ban 数组里
-    const p2EligiblePool = debuffsPool.filter(item => {
-      const isSameWeight = item.weight === targetWeight;
-      const isNotBanned = !banIdsByP1.map(String).includes(String(item.id));
-      return isSameWeight && isNotBanned;
-    });
+      const p1Eligible = debuffsPool.filter(item => {
+        return String(item.weight) === String(p0.weight) && 
+               !((p0.ban || []).map(String).includes(String(item.id))) && 
+               !chosenIds.includes(String(item.id));
+      });
+      
+      const p1 = getRandomItem(p1Eligible) || getRandomItem(debuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[1];
+      wonDebuffs[1] = p1;
 
-    let wonDebuffP2;
-    if (p2EligiblePool.length > 0) {
-      wonDebuffP2 = getRandomItem(p2EligiblePool);
     } else {
-      // 降级防错：如果全被 ban 掉了，则被迫和选手 A 拿一样的
-      wonDebuffP2 = wonDebuffP1; 
+      // ================= 2v2 彩蛋与去重 =================
+      triggerSpecial = specialDebuffPool.length > 0 && Math.random() < 0.01; 
+      const specialTargetGroup = Math.floor(Math.random() * 2); 
+
+      // ---- A组队员 ----
+      if (triggerSpecial && specialTargetGroup === 0) {
+        wonDebuffs[0] = specialDebuffPool[0];
+        wonDebuffs[2] = specialDebuffPool[0];
+      } else {
+        const p0 = getRandomItem(debuffsPool) || fallbackDebuffs[0];
+        wonDebuffs[0] = p0;
+        chosenIds.push(String(p0.id));
+
+        const p2Eligible = debuffsPool.filter(item => String(item.weight) === String(p0.weight) && !chosenIds.includes(String(item.id)));
+        const p2 = getRandomItem(p2Eligible) || getRandomItem(debuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[1]; 
+        wonDebuffs[2] = p2;
+        chosenIds.push(String(p2.id));
+      }
+
+      // ---- B组队员 ----
+      if (triggerSpecial && specialTargetGroup === 1) {
+        wonDebuffs[1] = specialDebuffPool[0];
+        wonDebuffs[3] = specialDebuffPool[0];
+      } else {
+        const p0Weight = wonDebuffs[0] ? wonDebuffs[0].weight : 1; 
+        const p0Bans = (wonDebuffs[0] && Array.isArray(wonDebuffs[0].ban)) ? wonDebuffs[0].ban.map(String) : [];
+        const p1Eligible = debuffsPool.filter(item => String(item.weight) === String(p0Weight) && !p0Bans.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
+        const p1 = getRandomItem(p1Eligible) || getRandomItem(debuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[2];
+        wonDebuffs[1] = p1;
+        chosenIds.push(String(p1.id));
+
+        const p2Weight = wonDebuffs[2] ? wonDebuffs[2].weight : 1;
+        const p2Bans = (wonDebuffs[2] && Array.isArray(wonDebuffs[2].ban)) ? wonDebuffs[2].ban.map(String) : [];
+        const p3Eligible = debuffsPool.filter(item => String(item.weight) === String(p2Weight) && !p2Bans.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
+        const p3 = getRandomItem(p3Eligible) || getRandomItem(debuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[3];
+        wonDebuffs[3] = p3;
+      }
     }
 
-    // =================【第三步：最后抽比赛地图（纯等概率盲抽）】=================
-    // 获取两位选手 Debuff 要求的最低人数限制（若无该字段则默认为 0）
-    const reqNumP1 = Number(wonDebuffP1.req_num) || 0;
-    const reqNumP2 = Number(wonDebuffP2.req_num) || 0;
-    // 地图人数 num 必须同时满足不小于两人的 req_num (即满足两人的最大值)
-    const requiredMinPlayers = Math.max(reqNumP1, reqNumP2);
+    // 地图筛选与容错
+    const requiredMinPlayers = Math.max(...wonDebuffs.map(d => d ? (Number(d.req_num) || 0) : 0));
+    const eligibleMapsPool = mapsPool.filter(map => (Number(map.num) || 0) >= requiredMinPlayers);
+    const wonMap = getRandomItem(eligibleMapsPool) || getRandomItem(mapsPool) || fallbackMaps[0];
 
-    // 过滤出符合人数限制的地图池
-    const eligibleMapsPool = mapsPool.filter(map => {
-      const mapNum = Number(map.num) || 0;
-      return mapNum >= requiredMinPlayers;
-    });
-
-    let wonMap;
-    if (eligibleMapsPool.length > 0) {
-      wonMap = eligibleMapsPool[Math.floor(Math.random() * eligibleMapsPool.length)];
-    } else {
-      // 降级防错：如果没有任何一张地图满足人数，则从全部地图里盲抽
-      console.warn(`未找到支持 ${requiredMinPlayers} 人的地图，已从全地图池中抽取。`);
-      wonMap = mapsPool[Math.floor(Math.random() * mapsPool.length)];
-    }
-
-    // =================【第四步：执行跑马灯动画与渲染】=================
+    // 动画执行控制
     let finishedCount = 0;
+    const playerCount = wonDebuffs.length;
+    const totalAnimations = 1 + playerCount;
+
     const checkAllFinished = () => {
       finishedCount++;
-      if (finishedCount === 3) {
+      if (finishedCount === totalAnimations) {
         isSpinning = false;
         spinBtn.disabled = false;
-        const p1Name = player1Input.value.trim() || '选手 A';
-        const p2Name = player2Input.value.trim() || '选手 B';
-        renderFAQ(p1Name, wonDebuffP1, p2Name, wonDebuffP2);
+        renderFAQ(wonDebuffs);
       }
     };
 
-    // 跑马灯滚动效果
+    const animationPool = (triggerSpecial && specialDebuffPool.length > 0) ? [...debuffsPool, ...specialDebuffPool] : debuffsPool;
+    
+    // 开始滚动地图
     animateReel(reelMap, mapsPool.map(m => m.name), wonMap.name, checkAllFinished);
-    animateReel(reelP1, debuffsPool.map(d => d.name), wonDebuffP1.name, checkAllFinished);
-    animateReel(reelP2, debuffsPool.map(d => d.name), wonDebuffP2.name, checkAllFinished);
+
+    // 开始滚动每位玩家的 Debuff
+    for (let i = 0; i < playerCount; i++) {
+      const reel = document.getElementById(`reel-p${i}`);
+      if (reel) {
+        animateReel(reel, animationPool.map(d => d.name), wonDebuffs[i] ? wonDebuffs[i].name : "无", checkAllFinished);
+      } else {
+        checkAllFinished();
+      }
+    }
   }
 
-  // 渲染右侧 FAQ 区域
-  function renderFAQ(p1Name, p1Debuff, p2Name, p2Debuff) {
+  function renderFAQ(wonDebuffs) {
     let html = '';
-    
-    html += `
-      <div class="faq-box" style="margin-bottom: 1rem;">
-        <h3>${p1Name} Debuff 补充说明:</h3>
-        <p><strong>${p1Debuff.name}</strong></p>
-        <p style="margin-top:0.4rem;">${p1Debuff.FAQ || '暂无说明'}</p>
-      </div>
-    `;
-
-    html += `
-      <div class="faq-box">
-        <h3>${p2Name} Debuff 补充说明:</h3>
-        <p><strong>${p2Debuff.name}</strong></p>
-        <p style="margin-top:0.4rem;">${p2Debuff.FAQ || '暂无说明'}</p>
-      </div>
-    `;
-
+    wonDebuffs.forEach((debuff, i) => {
+      if (!debuff) return;
+      const playerInput = document.getElementById(`player${i}Name`);
+      const playerName = playerInput ? playerInput.value.trim() : `选手 ${i+1}`;
+      html += `
+        <div class="faq-box">
+          <h3>${playerName} 的规则补充:</h3>
+          <p><strong>${debuff.name}</strong></p>
+          <p style="margin-top:0.4rem; font-size:0.9rem; color:var(--text-muted);">${debuff.FAQ || '暂无详细说明'}</p>
+        </div>
+      `;
+    });
     faqContent.innerHTML = html;
   }
 
   spinBtn.addEventListener('click', spinAll);
   resetBtn.addEventListener('click', resetDraw);
 
+  // 初始化
+  renderPlayerSlots();
   loadData();
 </script>
 </body>
