@@ -88,19 +88,20 @@
   let debuffsPool = [];
   let specialDebuffPool = []; 
   let isSpinning = false;
-  const ITEM_HEIGHT = 70; // 已修正为70
+  const ITEM_HEIGHT = 70; // 保持 70px 高度修正
 
-  // ==================== 新增：历史记录状态 ====================
-  // 记录每个位置选手最近3次的debuff id。1v1用前2个，2v2用全部4个。
-  // 数据结构：{ p0: [id, id, id], p1: [...], ... }
+  // ==================== 历史记录状态 ====================
+  // 1. 选手 Debuff 历史记录
   const playerHistory = {
     p0: [],
     p1: [],
     p2: [],
     p3: []
   };
-  // 全局彩蛋冷却计数器：记录距离上一次【触发彩蛋并完成】过去了多少局数
-  // 初始设为 3，代表第一局就可以有概率触发
+  // 2. 新增：全局地图历史记录（记录最近20次抽取过的地图 ID）
+  let mapHistory = [];
+
+  // 全局彩蛋冷却计数器：记住当前概率为 0.1
   let specialCooldownCounter = 3; 
 
   const spinBtn = document.getElementById('spinBtn');
@@ -202,12 +203,20 @@
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
-  // 新增：维护历史记录队列的方法（最多保留3个）
   function updatePlayerHistory(playerKey, debuffId) {
     if (!debuffId) return;
     playerHistory[playerKey].push(String(debuffId));
     if (playerHistory[playerKey].length > 3) {
-      playerHistory[playerKey].shift(); // 弹出最早的一次
+      playerHistory[playerKey].shift();
+    }
+  }
+
+  // 新增：维护地图历史记录队列的方法（最多保留20个）
+  function updateMapHistory(mapId) {
+    if (!mapId) return;
+    mapHistory.push(String(mapId));
+    if (mapHistory.length > 20) {
+      mapHistory.shift(); // 弹出最早的一次
     }
   }
 
@@ -245,7 +254,7 @@
     let triggerSpecial = false;
 
     if (currentMode === '1v1') {
-      // ================= 1v1 模式（保持不变） =================
+      // ================= 1v1 模式 =================
       const p0Pool = debuffsPool.filter(item => !playerHistory.p0.includes(String(item.id)));
       const p0 = getRandomItem(p0Pool) || getRandomItem(debuffsPool) || fallbackDebuffs[0];
       wonDebuffs[0] = p0;
@@ -268,58 +277,52 @@
     } else {
       // ================= 2v2 跨队难度匹配模式 =================
       
-      // 1. 判定是否触发彩蛋（最少间隔3局）
+      // 固定彩蛋机率为 0.1 并且满足 3 局冷却
       if (specialDebuffPool.length > 0 && Math.random() < 0.1 && specialCooldownCounter >= 3) {
         triggerSpecial = true;
       }
 
-      // 2. 如果触发了彩蛋，创建一个“移除了所有 grouped”的临时普通池
       let activeDebuffsPool = debuffsPool;
       if (triggerSpecial) {
         activeDebuffsPool = debuffsPool.filter(item => item.grouped !== true && item.grouped !== "true");
         if (activeDebuffsPool.length === 0) activeDebuffsPool = fallbackDebuffs;
       }
 
-      // 3. 开始抽取逻辑
       if (triggerSpecial) {
-        // ==================== 【新彩蛋局：两队各一人彩蛋，队友匹配难度】 ====================
-        const specialItem = specialDebuffPool[0]; // 获取彩蛋对象
-        const specialWeight = String(specialItem.weight || 1); // 获取彩蛋权重
+        // ==================== 彩蛋局 ====================
+        const specialItem = specialDebuffPool[0]; 
+        const specialWeight = String(specialItem.weight || 1); 
 
-        // ---- 队伍 1 结算 (p0, p1) ----
-        const t1SpecialPick = Math.floor(Math.random() * 2); // 0 代表 p0中，1 代表 p1中
+        // 队伍 1 结算
+        const t1SpecialPick = Math.floor(Math.random() * 2); 
         if (t1SpecialPick === 0) {
           wonDebuffs[0] = specialItem;
-          // p1 正常匹配与彩蛋难度相同的普通 debuff
           const p1Eligible = activeDebuffsPool.filter(item => !playerHistory.p1.includes(String(item.id)) && String(item.weight) === specialWeight);
           wonDebuffs[1] = getRandomItem(p1Eligible) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[1];
           chosenIds.push(String(wonDebuffs[1].id));
         } else {
           wonDebuffs[1] = specialItem;
-          // p0 正常匹配与彩蛋难度相同的普通 debuff
           const p0Eligible = activeDebuffsPool.filter(item => !playerHistory.p0.includes(String(item.id)) && String(item.weight) === specialWeight);
           wonDebuffs[0] = getRandomItem(p0Eligible) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[0];
           chosenIds.push(String(wonDebuffs[0].id));
         }
 
-        // ---- 队伍 2 结算 (p2, p3) ----
-        const t2SpecialPick = Math.floor(Math.random() * 2); // 0 代表 p2中，1 代表 p3中
+        // 队伍 2 结算
+        const t2SpecialPick = Math.floor(Math.random() * 2); 
         if (t2SpecialPick === 0) {
           wonDebuffs[2] = specialItem;
-          // p3 正常匹配与彩蛋难度相同的普通 debuff（去重已选过的队友debuff）
           const p3Eligible = activeDebuffsPool.filter(item => !playerHistory.p3.includes(String(item.id)) && String(item.weight) === specialWeight && !chosenIds.includes(String(item.id)));
           wonDebuffs[3] = getRandomItem(p3Eligible) || getRandomItem(activeDebuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[3];
           chosenIds.push(String(wonDebuffs[3].id));
         } else {
           wonDebuffs[3] = specialItem;
-          // p2 正常匹配与彩蛋难度相同的普通 debuff
           const p2Eligible = activeDebuffsPool.filter(item => !playerHistory.p2.includes(String(item.id)) && String(item.weight) === specialWeight && !chosenIds.includes(String(item.id)));
           wonDebuffs[2] = getRandomItem(p2Eligible) || getRandomItem(activeDebuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[2];
           chosenIds.push(String(wonDebuffs[2].id));
         }
 
       } else {
-        // ==================== 【普通局：跨队难度匹配 + Grouped 判定】 ====================
+        // ==================== 普通局 ====================
         // (1) 先抽 队伍1-A (p0)
         const p0Pool = activeDebuffsPool.filter(item => !playerHistory.p0.includes(String(item.id)));
         wonDebuffs[0] = getRandomItem(p0Pool) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[0];
@@ -352,7 +355,7 @@
         wonDebuffs[3] = getRandomItem(p3Eligible) || getRandomItem(activeDebuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[3];
         chosenIds.push(String(wonDebuffs[3].id));
 
-        // ---------------- 【独立结算队内 grouped 传染标签与宏观难度微调】 ----------------
+        // 队内 grouped 传染
         let team1HasGroup = false;
         let team2HasGroup = false;
 
@@ -405,13 +408,13 @@
         }
       }
 
-      // 4. 最终记录本次结果进选手各自的历史队列
+      // 记录选手历史
       updatePlayerHistory('p0', wonDebuffs[0].id);
       updatePlayerHistory('p1', wonDebuffs[1].id);
       updatePlayerHistory('p2', wonDebuffs[2].id);
       updatePlayerHistory('p3', wonDebuffs[3].id);
 
-      // 5. 更新彩蛋冷却计数器
+      // 更新彩蛋冷却
       if (triggerSpecial) {
         specialCooldownCounter = 0; 
       } else {
@@ -419,11 +422,21 @@
       }
     }
 
-    // ================= 后续地图筛选与滚动动画逻辑 =================
+    // ==================== 【优化：新增地图20次去重历史过滤逻辑】 ====================
     const requiredMinPlayers = Math.max(...wonDebuffs.map(d => d ? (Number(d.req_num) || 0) : 0));
-    const eligibleMapsPool = mapsPool.filter(map => (Number(map.num) || 0) >= requiredMinPlayers);
-    const wonMap = getRandomItem(eligibleMapsPool) || getRandomItem(mapsPool) || fallbackMaps[0];
+    // 1. 过滤人数符合要求的地图基础池
+    const baseMapsPool = mapsPool.filter(map => (Number(map.num) || 0) >= requiredMinPlayers);
+    
+    // 2. 在符合人数的池子基础上，进一步过滤掉最近 20 次抽过的地图
+    const filteredMapsPool = baseMapsPool.filter(map => !mapHistory.includes(String(map.id)));
+    
+    // 3. 确定最终地图：优先从防重复池抽，如果没有剩余则从人数匹配池盲抽，最后使用后备数据兜底
+    const wonMap = getRandomItem(filteredMapsPool) || getRandomItem(baseMapsPool) || getRandomItem(mapsPool) || fallbackMaps[0];
+    
+    // 4. 将本次抽中地图的 ID 推入历史防重复队列
+    updateMapHistory(wonMap.id);
 
+    // ================= 后续滚动动画逻辑 =================
     let finishedCount = 0;
     const playerCount = wonDebuffs.length;
     const totalAnimations = 1 + playerCount;
