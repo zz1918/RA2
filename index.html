@@ -22,7 +22,13 @@
     .tab-button { background: transparent; color: var(--text-muted); padding: 1rem 2.5rem; font-size: 1.1rem; font-weight: 700; border: none; border-bottom: 3px solid transparent; cursor: pointer; transition: all 0.2s ease; }
     .tab-button.active { color: var(--primary); border-bottom-color: var(--primary); background: rgba(99, 102, 241, 0.05); }
     .main-content { width: 100%; max-width: 1500px; padding: 2rem; display: flex; flex-direction: column; align-items: center; }
-    .site-title { font-size: 2.5rem; font-weight: 800; margin-bottom: 2rem; text-shadow: 0 0 15px rgba(99, 102, 241, 0.5); }
+    .site-title { font-size: 2.5rem; font-weight: 800; margin-bottom: 1.5rem; text-shadow: 0 0 15px rgba(99, 102, 241, 0.5); }
+    
+    /* 图鉴入口按钮区 */
+    .wiki-actions { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+    .btn-wiki { background: rgba(99, 102, 241, 0.15); border: 1px solid var(--primary); color: #a5b4fc; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 0.5rem; }
+    .btn-wiki:hover { background: var(--primary); color: #fff; box-shadow: 0 0 10px rgba(99, 102, 241, 0.4); }
+
     .app-container { display: grid; grid-template-columns: 1fr 350px; gap: 2rem; width: 100%; background: var(--card-bg); padding: 2rem; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
     @media (max-width: 968px) { .app-container { grid-template-columns: 1fr; } }
     .slot-section { display: flex; flex-direction: column; align-items: center; gap: 1.5rem; width: 100%; }
@@ -43,6 +49,32 @@
     .faq-box p { white-space: pre-line; }
     .inline-player-input { width: 120px; padding: 0.2rem; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border); border-radius: 6px; color: var(--accent); font-weight: 700; text-align: center; outline: none; }
     .row-title { font-size: 1.1rem; color: var(--text-muted); margin-bottom: 0.4rem; }
+
+    /* 图鉴 Modal 弹窗样式 */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 1000; }
+    .modal-overlay.active { display: flex; }
+    .modal-container { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; width: 90%; max-width: 1100px; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); overflow: hidden; }
+    .modal-header { padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #090d16; }
+    .modal-tabs { display: flex; gap: 0.5rem; }
+    .modal-tab-btn { background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 0.4rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    .modal-tab-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .modal-close { background: transparent; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; padding: 0 0.5rem; }
+    .modal-close:hover { color: #fff; }
+    .modal-body { padding: 1.5rem; overflow-y: auto; flex: 1; }
+    
+    /* 图鉴表格样式 */
+    .wiki-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem; }
+    .wiki-table th, .wiki-table td { padding: 0.8rem 1rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .wiki-table th { background: rgba(15, 23, 42, 0.8); color: var(--text-muted); font-weight: 700; position: sticky; top: -1.5rem; z-index: 10; }
+    .wiki-table tr:hover { background: rgba(255, 255, 255, 0.02); }
+    
+    /* 难度标签 Badge */
+    .badge-weight { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 700; }
+    .weight-1 { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+    .weight-2 { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .weight-3 { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .badge-grouped { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.3); padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.8rem; }
+    .ban-item { display: inline-block; background: rgba(255, 255, 255, 0.05); padding: 0.1rem 0.4rem; border-radius: 4px; margin: 0.1rem; font-size: 0.85rem; border: 1px solid var(--border); }
   </style>
 </head>
 <body>
@@ -54,6 +86,12 @@
 
 <div class="main-content">
   <h1 class="site-title" id="siteTitle">🎮 公平的双人Debuff抽取系统 (1v1)</h1>
+
+  <!-- 图鉴入口按钮区 -->
+  <div class="wiki-actions">
+    <button class="btn-wiki" onclick="openWiki('debuff')">📖 查看 Debuff 图鉴</button>
+    <button class="btn-wiki" onclick="openWiki('map')">🗺️ 查看地图图鉴</button>
+  </div>
 
   <div class="app-container">
     <div class="slot-section">
@@ -82,6 +120,22 @@
   </div>
 </div>
 
+<!-- 图鉴 Modal 弹窗 -->
+<div class="modal-overlay" id="wikiModal">
+  <div class="modal-container">
+    <div class="modal-header">
+      <div class="modal-tabs">
+        <button class="modal-tab-btn" id="modal-tab-debuff" onclick="switchWikiTab('debuff')">Debuff 图鉴</button>
+        <button class="modal-tab-btn" id="modal-tab-map" onclick="switchWikiTab('map')">地图图鉴</button>
+      </div>
+      <button class="modal-close" onclick="closeWiki()">&times;</button>
+    </div>
+    <div class="modal-body" id="wikiModalBody">
+      <!-- 动态渲染图鉴表格 -->
+    </div>
+  </div>
+</div>
+
 <script>
   let currentMode = '1v1';
   let mapsPool = [];
@@ -91,17 +145,13 @@
   const ITEM_HEIGHT = 70; // 保持 70px 高度修正
 
   // ==================== 历史记录状态 ====================
-  // 1. 选手 Debuff 历史记录
   const playerHistory = {
     p0: [],
     p1: [],
     p2: [],
     p3: []
   };
-  // 2. 新增：全局地图历史记录（记录最近20次抽取过的地图 ID）
   let mapHistory = [];
-
-  // 全局彩蛋冷却计数器：记住当前概率为 0.1
   let specialCooldownCounter = 3; 
 
   const spinBtn = document.getElementById('spinBtn');
@@ -211,12 +261,11 @@
     }
   }
 
-  // 新增：维护地图历史记录队列的方法（最多保留20个）
   function updateMapHistory(mapId) {
     if (!mapId) return;
     mapHistory.push(String(mapId));
     if (mapHistory.length > 20) {
-      mapHistory.shift(); // 弹出最早的一次
+      mapHistory.shift();
     }
   }
 
@@ -254,7 +303,6 @@
     let triggerSpecial = false;
 
     if (currentMode === '1v1') {
-      // ================= 1v1 模式（保持不变） =================
       const p0Pool = debuffsPool.filter(item => !playerHistory.p0.includes(String(item.id)));
       const p0 = getRandomItem(p0Pool) || getRandomItem(debuffsPool) || fallbackDebuffs[0];
       wonDebuffs[0] = p0;
@@ -275,9 +323,6 @@
       specialCooldownCounter++;
 
     } else {
-      // ================= 2v2 跨队难度匹配模式 =================
-      
-      // 固定彩蛋机率为 0.1 并且满足 3 局冷却
       if (specialDebuffPool.length > 0 && Math.random() < 0.1 && specialCooldownCounter >= 3) {
         triggerSpecial = true;
       }
@@ -289,11 +334,9 @@
       }
 
       if (triggerSpecial) {
-        // ==================== 彩蛋局 ====================
         const specialItem = specialDebuffPool[0]; 
         const specialWeight = String(specialItem.weight || 1); 
 
-        // 队伍 1 结算
         const t1SpecialPick = Math.floor(Math.random() * 2); 
         if (t1SpecialPick === 0) {
           wonDebuffs[0] = specialItem;
@@ -307,7 +350,6 @@
           chosenIds.push(String(wonDebuffs[0].id));
         }
 
-        // 队伍 2 结算
         const t2SpecialPick = Math.floor(Math.random() * 2); 
         if (t2SpecialPick === 0) {
           wonDebuffs[2] = specialItem;
@@ -322,13 +364,10 @@
         }
 
       } else {
-        // ==================== 普通局 ====================
-        // (1) 先抽 队伍1-A (p0)
         const p0Pool = activeDebuffsPool.filter(item => !playerHistory.p0.includes(String(item.id)));
         wonDebuffs[0] = getRandomItem(p0Pool) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[0];
         chosenIds.push(String(wonDebuffs[0].id));
 
-        // (2) 匹配 队伍2-A (p2)
         const p0Bans = (wonDebuffs[0] && Array.isArray(wonDebuffs[0].ban)) ? wonDebuffs[0].ban.map(String) : [];
         const p2Eligible = activeDebuffsPool.filter(item => 
           !playerHistory.p2.includes(String(item.id)) &&
@@ -339,12 +378,10 @@
         wonDebuffs[2] = getRandomItem(p2Eligible) || getRandomItem(activeDebuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[2];
         chosenIds.push(String(wonDebuffs[2].id));
 
-        // (3) 抽取 队伍1-B (p1)
         const p1Pool = activeDebuffsPool.filter(item => !chosenIds.includes(String(item.id)) && !playerHistory.p1.includes(String(item.id)));
         wonDebuffs[1] = getRandomItem(p1Pool) || getRandomItem(activeDebuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[1];
         chosenIds.push(String(wonDebuffs[1].id));
 
-        // (4) 匹配 队伍2-B (p3)
         const p1Bans = (wonDebuffs[1] && Array.isArray(wonDebuffs[1].ban)) ? wonDebuffs[1].ban.map(String) : [];
         const p3Eligible = activeDebuffsPool.filter(item => 
           !playerHistory.p3.includes(String(item.id)) &&
@@ -355,7 +392,6 @@
         wonDebuffs[3] = getRandomItem(p3Eligible) || getRandomItem(activeDebuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[3];
         chosenIds.push(String(wonDebuffs[3].id));
 
-        // 【核心第三步：第一轮队内 grouped 传染结算】
         let team1HasGroup = false;
         let team2HasGroup = false;
 
@@ -369,7 +405,6 @@
         if (p2Grouped) { wonDebuffs[3] = wonDebuffs[2]; team2HasGroup = true; } 
         else if (p3Grouped) { wonDebuffs[2] = wonDebuffs[3]; team2HasGroup = true; }
 
-        // 跨队 Group 难度微调限制
         const w1 = Number(wonDebuffs[0].weight) || 0;
         const w2 = Number(wonDebuffs[2].weight) || 0;
 
@@ -387,7 +422,6 @@
           }
         } 
         else if (team1HasGroup) {
-          // 情况 B：仅队伍1是 Group，检查队伍2是否有人难度过高并重抽
           let p2ReSpun = false;
           let p3ReSpun = false;
 
@@ -402,19 +436,17 @@
             p3ReSpun = true;
           }
 
-          // 【新增逻辑】：如果队伍2进行了重抽，检测重抽后是否触发了新的 Group 感染
           if (p2ReSpun || p3ReSpun) {
             const newP2Grouped = wonDebuffs[2].grouped === true || wonDebuffs[2].grouped === "true";
             const newP3Grouped = wonDebuffs[3].grouped === true || wonDebuffs[3].grouped === "true";
             if (newP2Grouped) {
-              wonDebuffs[3] = wonDebuffs[2]; // p2触发感染，全队同化，不重复检测难度
+              wonDebuffs[3] = wonDebuffs[2];
             } else if (newP3Grouped) {
-              wonDebuffs[2] = wonDebuffs[3]; // p3触发感染，全队同化，不重复检测难度
+              wonDebuffs[2] = wonDebuffs[3];
             }
           }
         } 
         else if (team2HasGroup) {
-          // 情况 C：仅队伍2是 Group，检查队伍1是否有人难度过高并重抽
           let p0ReSpun = false;
           let p1ReSpun = false;
 
@@ -429,26 +461,23 @@
             p1ReSpun = true;
           }
 
-          // 【新增逻辑】：如果队伍1进行了重抽，检测重抽后是否触发了新的 Group 感染
           if (p0ReSpun || p1ReSpun) {
             const newP0Grouped = wonDebuffs[0].grouped === true || wonDebuffs[0].grouped === "true";
             const newP1Grouped = wonDebuffs[1].grouped === true || wonDebuffs[1].grouped === "true";
             if (newP0Grouped) {
-              wonDebuffs[1] = wonDebuffs[0]; // p0触发感染，全队同化
+              wonDebuffs[1] = wonDebuffs[0];
             } else if (newP1Grouped) {
-              wonDebuffs[0] = wonDebuffs[1]; // p1触发感染，全队同化
+              wonDebuffs[0] = wonDebuffs[1];
             }
           }
         }
       }
 
-      // 记录选手历史
       updatePlayerHistory('p0', wonDebuffs[0].id);
       updatePlayerHistory('p1', wonDebuffs[1].id);
       updatePlayerHistory('p2', wonDebuffs[2].id);
       updatePlayerHistory('p3', wonDebuffs[3].id);
 
-      // 更新彩蛋冷却
       if (triggerSpecial) {
         specialCooldownCounter = 0; 
       } else {
@@ -456,14 +485,12 @@
       }
     }
 
-    // ==================== 地图20次去重历史过滤逻辑（保持不变） ====================
     const requiredMinPlayers = Math.max(...wonDebuffs.map(d => d ? (Number(d.req_num) || 0) : 0));
     const baseMapsPool = mapsPool.filter(map => (Number(map.num) || 0) >= requiredMinPlayers);
     const filteredMapsPool = baseMapsPool.filter(map => !mapHistory.includes(String(map.id)));
     const wonMap = getRandomItem(filteredMapsPool) || getRandomItem(baseMapsPool) || getRandomItem(mapsPool) || fallbackMaps[0];
     updateMapHistory(wonMap.id);
 
-    // ================= 后续滚动动画逻辑（保持不变） =================
     let finishedCount = 0;
     const playerCount = wonDebuffs.length;
     const totalAnimations = 1 + playerCount;
@@ -507,6 +534,131 @@
     });
     faqContent.innerHTML = html;
   }
+
+  // ==================== 图鉴功能 (Wiki Module) ====================
+  const wikiModal = document.getElementById('wikiModal');
+  const wikiModalBody = document.getElementById('wikiModalBody');
+  let currentWikiTab = 'debuff';
+
+  const weightMap = {
+    1: '<span class="badge-weight weight-1">简单</span>',
+    2: '<span class="badge-weight weight-2">中等</span>',
+    3: '<span class="badge-weight weight-3">困难</span>'
+  };
+
+  function openWiki(tab = 'debuff') {
+    wikiModal.classList.add('active');
+    switchWikiTab(tab);
+  }
+
+  function closeWiki() {
+    wikiModal.classList.remove('active');
+  }
+
+  function switchWikiTab(tab) {
+    currentWikiTab = tab;
+    document.getElementById('modal-tab-debuff').classList.toggle('active', tab === 'debuff');
+    document.getElementById('modal-tab-map').classList.toggle('active', tab === 'map');
+
+    if (tab === 'debuff') {
+      renderDebuffWiki();
+    } else {
+      renderMapWiki();
+    }
+  }
+
+  function renderDebuffWiki() {
+    // 包含常规 debuffs 和 2v2 彩蛋 debuffs
+    const combinedDebuffs = [...debuffsPool];
+    if (specialDebuffPool && specialDebuffPool.length > 0) {
+      specialDebuffPool.forEach(sp => {
+        if (!combinedDebuffs.some(d => d.id === sp.id && d.name === sp.name)) {
+          combinedDebuffs.push(sp);
+        }
+      });
+    }
+
+    let html = `
+      <table class="wiki-table">
+        <thead>
+          <tr>
+            <th style="width: 60px;">ID</th>
+            <th style="width: 250px;">名称</th>
+            <th style="width: 80px;">难度</th>
+            ${currentMode === '2v2' ? '<th style="width: 90px;">团体效果</th>' : ''}
+            <th style="width: 150px;">互斥 (Ban)</th>
+            <th>规则答疑 (FAQ)</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    combinedDebuffs.forEach(item => {
+      // 转换 ban IDs 为名称
+      let banNames = [];
+      if (Array.isArray(item.ban) && item.ban.length > 0) {
+        banNames = item.ban.map(bId => {
+          const found = combinedDebuffs.find(d => String(d.id) === String(bId));
+          return found ? `<span class="ban-item">${found.name}</span>` : `<span class="ban-item">ID:${bId}</span>`;
+        });
+      }
+      const banStr = banNames.length > 0 ? banNames.join('') : '<span style="color:var(--text-muted);">-</span>';
+
+      const isGrouped = (item.grouped === true || item.grouped === 'true') ? '<span class="badge-grouped">是</span>' : '<span style="color:var(--text-muted);">否</span>';
+
+      html += `
+        <tr>
+          <td>#${item.id}</td>
+          <td><strong>${item.name}</strong></td>
+          <td>${weightMap[item.weight] || item.weight}</td>
+          ${currentMode === '2v2' ? `<td>${isGrouped}</td>` : ''}
+          <td>${banStr}</td>
+          <td style="white-space: pre-line; color: var(--text-muted);">${item.FAQ || '-'}</td>
+        </tr>
+      `;
+    });
+
+    html += `</tbody></table>`;
+    wikiModalBody.innerHTML = html;
+  }
+
+  function renderMapWiki() {
+    let html = `
+      <table class="wiki-table">
+        <thead>
+          <tr>
+            <th style="width: 80px;">ID</th>
+            <th>地图名称</th>
+            <th style="width: 120px;">适用的最大人数</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    mapsPool.forEach(map => {
+      html += `
+        <tr>
+          <td>#${map.id}</td>
+          <td><strong>${map.name}</strong></td>
+          <td><span class="badge-weight weight-1">${map.num} 人</span></td>
+        </tr>
+      `;
+    });
+
+    html += `</tbody></table>`;
+    wikiModalBody.innerHTML = html;
+  }
+
+  // 绑定 Modal 关闭点击事件
+  wikiModal.addEventListener('click', (e) => {
+    if (e.target === wikiModal) closeWiki();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && wikiModal.classList.contains('active')) {
+      closeWiki();
+    }
+  });
 
   spinBtn.addEventListener('click', spinAll);
   resetBtn.addEventListener('click', resetDraw);
