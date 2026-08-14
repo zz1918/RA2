@@ -87,6 +87,7 @@
 <body>
 
 <div class="nav-tabs">
+  <button class="tab-button" id="tab-1v0" onclick="switchMode('1v0')">👤 单人限制模式</button>
   <button class="tab-button active" id="tab-1v1" onclick="switchMode('1v1')">⚔️ 1v1 模式</button>
   <button class="tab-button" id="tab-2v2" onclick="switchMode('2v2')">⚔️⚔️ 2v2 模式</button>
 </div>
@@ -178,17 +179,24 @@
   const siteTitle = document.getElementById('siteTitle');
 
   // 完美防卡死后备数据
-  const fallbackMaps = [{ id: 1, name: " [后备] 月球巡礼", num: 2 }];
+  const fallbackMaps = [{ id: 1, name: " [后备] 月球巡礼", num: 1 }];
   const fallbackDebuffs = [
-    { id: 1, name: " [后备] 禁止使用鼠标", weight: 1, FAQ: "只能用纯键盘操作游戏。", ban: [], req_num: 2 },
-    { id: 2, name: " [后备] 禁止打开屏幕", weight: 1, FAQ: "请闭眼或者关掉显示器。", ban: [], req_num: 2 },
-    { id: 3, name: " [后备] 禁止眨眼", weight: 2, FAQ: "眨眼算输，坚持住！", ban: [], req_num: 2 },
-    { id: 4, name: " [后备] 禁止上厕所", weight: 3, FAQ: "打完这局再去！", ban: [], req_num: 2 }
+    { id: 1, name: " [后备] 禁止使用鼠标", weight: 1, FAQ: "只能用纯键盘操作游戏。", ban: [], req_num: 1 },
+    { id: 2, name: " [后备] 禁止打开屏幕", weight: 1, FAQ: "请闭眼或者关掉显示器。", ban: [], req_num: 1 },
+    { id: 3, name: " [后备] 禁止眨眼", weight: 2, FAQ: "眨眼算输，坚持住！", ban: [], req_num: 1 },
+    { id: 4, name: " [后备] 禁止上厕所", weight: 3, FAQ: "打完这局再去！", ban: [], req_num: 1 }
   ];
 
   const defaultNames = {
+    '1v0': ['挑战者'],
     '1v1': ['选手 A', '选手 B'],
     '2v2': ['队伍1-选手A', '队伍1-选手B', '队伍2-选手A', '队伍2-选手B']
+  };
+
+  const modeTitles = {
+    '1v0': '🎮 公平的单人Debuff挑战模式',
+    '1v1': '🎮 公平的双人Debuff抽取系统 (1v1)',
+    '2v2': '🎮 公平的四人Debuff抽取系统 (2v2)'
   };
 
   function renderPlayerSlots() {
@@ -214,16 +222,18 @@
   async function switchMode(mode) {
     if (isSpinning) return;
     currentMode = mode;
+    document.getElementById('tab-1v0').classList.toggle('active', mode === '1v0');
     document.getElementById('tab-1v1').classList.toggle('active', mode === '1v1');
     document.getElementById('tab-2v2').classList.toggle('active', mode === '2v2');
-    siteTitle.innerText = mode === '1v1' ? '🎮 公平的双人Debuff抽取系统 (1v1)' : '🎮 公平的四人Debuff抽取系统 (2v2)';
+    siteTitle.innerText = modeTitles[mode];
     renderPlayerSlots();
     await loadData();
   }
 
   async function loadData() {
-    const mapFile = currentMode === '1v1' ? 'map.json' : 'map2.json';
-    const debuffFile = currentMode === '1v1' ? 'debuff.json' : 'debuff2.json';
+    // 1v0 和 1v1 复用 map.json 和 debuff.json
+    const mapFile = (currentMode === '1v0' || currentMode === '1v1') ? 'map.json' : 'map2.json';
+    const debuffFile = (currentMode === '1v0' || currentMode === '1v1') ? 'debuff.json' : 'debuff2.json';
 
     try {
       const [mapsRes, debuffsRes] = await Promise.all([
@@ -320,7 +330,6 @@
       currentFilteredPool = debuffsPool.filter(item => String(item.weight) === String(selectedWeight));
     }
 
-    // 防错兜底：如果选中的难度池没有数据，降级回全池子并提示
     if (currentFilteredPool.length === 0) {
       alert(`当前模式下未找到难度为【${selectedWeight}】的 Debuff，将从全库中随机抽取！`);
       currentFilteredPool = debuffsPool;
@@ -333,7 +342,14 @@
     let chosenIds = []; 
     let triggerSpecial = false;
 
-    if (currentMode === '1v1') {
+    // 单人模式 (1v0)
+    if (currentMode === '1v0') {
+      const p0Pool = currentFilteredPool.filter(item => !playerHistory.p0.includes(String(item.id)));
+      const p0 = getRandomItem(p0Pool) || getRandomItem(currentFilteredPool) || fallbackDebuffs[0];
+      wonDebuffs[0] = p0;
+      updatePlayerHistory('p0', wonDebuffs[0].id);
+
+    } else if (currentMode === '1v1') {
       const p0Pool = currentFilteredPool.filter(item => !playerHistory.p0.includes(String(item.id)));
       const p0 = getRandomItem(p0Pool) || getRandomItem(currentFilteredPool) || fallbackDebuffs[0];
       wonDebuffs[0] = p0;
@@ -354,7 +370,7 @@
       specialCooldownCounter++;
 
     } else {
-      // 只有选“全部”难度时，才可能触发彩蛋池
+      // 2v2 模式
       if (selectedWeight === 'all' && specialDebuffPool.length > 0 && Math.random() < 0.1 && specialCooldownCounter >= 3) {
         triggerSpecial = true;
       }
