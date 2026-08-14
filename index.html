@@ -617,7 +617,7 @@
 
       html += `
         <tr>
-          <td>#${item.id}</td>
+          <td>${item.isSpecial ? '##' : '#' + item.id}</td>
           <td><strong>${item.name}</strong></td>
           <td>${getWeightBadge(item, item.isSpecial)}</td>
           ${currentMode === '2v2' ? `<td>${isGrouped}</td>` : ''}
