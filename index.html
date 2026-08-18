@@ -39,13 +39,16 @@
     .slot-reel { display: flex; flex-direction: column; position: absolute; width: 100%; top: 0; left: 0; will-change: transform; }
     .slot-item { height: 70px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 600; color: #fff; text-align: center; padding: 0 1rem; padding-top: 10px; }
     
-    /* 控制栏与难度选择样式 */
+    /* 选手标题与难度控制独立栏 */
+    .player-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; flex-wrap: wrap; gap: 0.5rem; }
+    .select-weight-player { background-color: #090d16; border: 1px solid var(--border); color: var(--text); padding: 0.3rem 0.6rem; border-radius: 6px; font-weight: 600; font-size: 0.85rem; outline: none; cursor: pointer; }
+    .select-weight-player:focus { border-color: var(--primary); }
+
+    /* 控制栏样式 */
     .controls { display: flex; gap: 1rem; width: 100%; margin-top: 1rem; align-items: center; }
     .btn-spin { background-color: var(--primary); color: white; flex: 1; padding: 0.85rem; font-size: 1rem; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; }
     .btn-spin:disabled { opacity: 0.5; cursor: not-allowed; }
     .btn-reset { background-color: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 0.85rem 1.2rem; border-radius: 8px; cursor: pointer; }
-    .select-weight { background-color: #090d16; border: 1px solid var(--border); color: var(--text); padding: 0.85rem 1rem; border-radius: 8px; font-weight: 600; outline: none; cursor: pointer; }
-    .select-weight:focus { border-color: var(--primary); }
 
     .faq-section { border-left: 1px solid var(--border); padding-left: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
     .faq-title { font-size: 1.2rem; font-weight: 700; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; }
@@ -53,7 +56,7 @@
     .faq-box h3 { font-size: 0.95rem; color: var(--accent); margin-bottom: 0.5rem; }
     .faq-box p { white-space: pre-line; }
     .inline-player-input { width: 120px; padding: 0.2rem; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border); border-radius: 6px; color: var(--accent); font-weight: 700; text-align: center; outline: none; }
-    .row-title { font-size: 1.1rem; color: var(--text-muted); margin-bottom: 0.4rem; }
+    .row-title { font-size: 1.1rem; color: var(--text-muted); }
 
     /* 图鉴 Modal 弹窗样式 */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 1000; }
@@ -82,6 +85,9 @@
     
     .badge-grouped { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.3); padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.8rem; }
     .ban-item { display: inline-block; background: rgba(255, 255, 255, 0.05); padding: 0.1rem 0.4rem; border-radius: 4px; margin: 0.1rem; font-size: 0.85rem; border: 1px solid var(--border); }
+    .site-footer { margin-top: 1.5rem; color: var(--text-muted); font-size: 0.9rem; }
+    .site-footer a { color: var(--primary); text-decoration: none; }
+    .site-footer a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -95,7 +101,6 @@
 <div class="main-content">
   <h1 class="site-title" id="siteTitle">🎮 公平的双人Debuff抽取系统 (1v1)</h1>
 
-  <!-- 图鉴入口按钮区 -->
   <div class="wiki-actions">
     <button class="btn-wiki" onclick="openWiki('debuff')">📖 查看 Debuff 图鉴</button>
     <button class="btn-wiki" onclick="openWiki('map')">🗺️ 查看地图图鉴</button>
@@ -105,7 +110,7 @@
     <div class="slot-section">
       <div class="row-container">
         <div class="slot-row">
-          <div class="row-title">🗺️ 比赛地图：</div>
+          <div class="row-title" style="margin-bottom: 0.4rem;">🗺️ 比赛地图：</div>
           <div class="slot-window" id="window-map">
             <div class="slot-reel" id="reel-map"><div class="slot-item">等待抽取比赛地图...</div></div>
           </div>
@@ -114,14 +119,6 @@
       </div>
 
       <div class="controls">
-        <!-- 难度选择下拉框 -->
-        <select class="select-weight" id="weightFilterSelect" title="选择Debuff难度">
-          <option value="all">🎯 全部 </option>
-          <option value="1">🟢 简单 </option>
-          <option value="2">🟡 中等 </option>
-          <option value="3">🔴 困难 </option>
-        </select>
-        
         <button class="btn-spin" id="spinBtn">摇一摇！</button>
         <button class="btn-reset" id="resetBtn">重置</button>
       </div>
@@ -134,13 +131,12 @@
       </div>
     </div>
   </div>
-        <!-- 底部网址 -->
-        <div class="site-footer">
-            本页网址: <a href="https://ra2debuffroller.cn" target="_blank">ra2debuffroller.cn</a>
-        </div>
+  
+  <div class="site-footer">
+      本页网址: <a href="https://ra2debuffroller.cn" target="_blank">ra2debuffroller.cn</a>
+  </div>
 </div>
 
-<!-- 图鉴 Modal 弹窗 -->
 <div class="modal-overlay" id="wikiModal">
   <div class="modal-container">
     <div class="modal-header">
@@ -151,8 +147,7 @@
       <button class="modal-close" onclick="closeWiki()">&times;</button>
     </div>
     <div class="modal-body" id="wikiModalBody">
-      <!-- 动态渲染图鉴表格 -->
-    </div>
+      </div>
   </div>
 </div>
 
@@ -176,7 +171,6 @@
 
   const spinBtn = document.getElementById('spinBtn');
   const resetBtn = document.getElementById('resetBtn');
-  const weightFilterSelect = document.getElementById('weightFilterSelect');
   const reelMap = document.getElementById('reel-map');
   const faqContent = document.getElementById('faq-content');
   const playersContainer = document.getElementById('playersReelsContainer');
@@ -203,14 +197,25 @@
     '2v2': '🎮 公平的四人Debuff抽取系统 (2v2)'
   };
 
+  // 为每个选手单独渲染选框
   function renderPlayerSlots() {
     const names = defaultNames[currentMode];
     let html = '';
     names.forEach((name, index) => {
       html += `
         <div class="slot-row" style="margin-top: 1rem;">
-          <div class="row-title">
-            👤 <input type="text" id="player${index}Name" class="inline-player-input" value="${name}" /> 的 Debuff：
+          <div class="player-header-row">
+            <div class="row-title">
+              👤 <input type="text" id="player${index}Name" class="inline-player-input" value="${name}" /> 的 Debuff：
+            </div>
+            <div>
+              <select class="select-weight-player" id="player${index}Weight" title="独立难度选择">
+                <option value="all">🎯 全部 </option>
+                <option value="1">🟢 简单 </option>
+                <option value="2">🟡 中等 </option>
+                <option value="3">🔴 困难 </option>
+              </select>
+            </div>
           </div>
           <div class="slot-window" id="window-p${index}">
             <div class="slot-reel" id="reel-p${index}">
@@ -235,7 +240,6 @@
   }
 
   async function loadData() {
-    // 1v0 和 1v1 复用 map.json 和 debuff.json
     const mapFile = (currentMode === '1v0' || currentMode === '1v1') ? 'map.json' : 'map2.json';
     const debuffFile = (currentMode === '1v0' || currentMode === '1v1') ? 'debuff.json' : 'debuff2.json';
 
@@ -299,6 +303,15 @@
     }
   }
 
+  // 专属工具函数：根据选手 index 和难度设置，获取可用筛选池
+  function getFilteredPoolForPlayer(playerIndex, basePool = debuffsPool) {
+    const sel = document.getElementById(`player${playerIndex}Weight`);
+    const weightVal = sel ? sel.value : 'all';
+    if (weightVal === 'all') return basePool;
+    const filtered = basePool.filter(item => String(item.weight) === String(weightVal));
+    return filtered.length > 0 ? filtered : basePool; 
+  }
+
   function animateReel(reel, allNames, targetName, callback) {
     const spinSequence = [];
     const totalItemsInSpin = 25;
@@ -325,20 +338,6 @@
   function spinAll() {
     if (isSpinning) return;
 
-    // 🎯 获取难度筛选设置
-    const selectedWeight = weightFilterSelect.value;
-    
-    // 根据选择筛选主池
-    let currentFilteredPool = debuffsPool;
-    if (selectedWeight !== 'all') {
-      currentFilteredPool = debuffsPool.filter(item => String(item.weight) === String(selectedWeight));
-    }
-
-    if (currentFilteredPool.length === 0) {
-      alert(`当前模式下未找到难度为【${selectedWeight}】的 Debuff，将从全库中随机抽取！`);
-      currentFilteredPool = debuffsPool;
-    }
-
     isSpinning = true;
     spinBtn.disabled = true;
 
@@ -348,25 +347,36 @@
 
     // 单人模式 (1v0)
     if (currentMode === '1v0') {
-      const p0Pool = currentFilteredPool.filter(item => !playerHistory.p0.includes(String(item.id)));
-      const p0 = getRandomItem(p0Pool) || getRandomItem(currentFilteredPool) || fallbackDebuffs[0];
+      const p0PoolBase = getFilteredPoolForPlayer(0);
+      const p0Eligible = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
+      const p0 = getRandomItem(p0Eligible) || getRandomItem(p0PoolBase) || fallbackDebuffs[0];
       wonDebuffs[0] = p0;
       updatePlayerHistory('p0', wonDebuffs[0].id);
 
     } else if (currentMode === '1v1') {
-      const p0Pool = currentFilteredPool.filter(item => !playerHistory.p0.includes(String(item.id)));
-      const p0 = getRandomItem(p0Pool) || getRandomItem(currentFilteredPool) || fallbackDebuffs[0];
+      // P0 选池
+      const p0PoolBase = getFilteredPoolForPlayer(0);
+      const p0Eligible = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
+      const p0 = getRandomItem(p0Eligible) || getRandomItem(p0PoolBase) || fallbackDebuffs[0];
       wonDebuffs[0] = p0;
       chosenIds.push(String(p0.id));
 
-      const p1Eligible = currentFilteredPool.filter(item => {
+      // P1 选池：需要避开 P0 的 ban 列表，避开 P0 选到的 ID，且满足 P1 的独立难度与 3 次内不重复
+      const p1PoolBase = getFilteredPoolForPlayer(1);
+      const p0Bans = (p0 && Array.isArray(p0.ban)) ? p0.ban.map(String) : [];
+
+      let p1Eligible = p1PoolBase.filter(item => {
         return !playerHistory.p1.includes(String(item.id)) &&
-               String(item.weight) === String(p0.weight) && 
-               !((p0.ban || []).map(String).includes(String(item.id))) && 
+               !p0Bans.includes(String(item.id)) && 
                !chosenIds.includes(String(item.id));
       });
       
-      const p1 = getRandomItem(p1Eligible) || getRandomItem(currentFilteredPool.filter(item => !chosenIds.includes(String(item.id)))) || getRandomItem(currentFilteredPool) || fallbackDebuffs[1];
+      // 如果严苛筛选条件无解，退一步取消历史判定，但保留 Ban 判定
+      if (p1Eligible.length === 0) {
+        p1Eligible = p1PoolBase.filter(item => !p0Bans.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
+      }
+
+      const p1 = getRandomItem(p1Eligible) || getRandomItem(p1PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || getRandomItem(p1PoolBase) || fallbackDebuffs[1];
       wonDebuffs[1] = p1;
 
       updatePlayerHistory('p0', wonDebuffs[0].id);
@@ -375,14 +385,15 @@
 
     } else {
       // 2v2 模式
-      if (selectedWeight === 'all' && specialDebuffPool.length > 0 && Math.random() < 0.1 && specialCooldownCounter >= 3) {
-        triggerSpecial = true;
-      }
+      const allP0All = document.getElementById('player0Weight').value === 'all';
+      const allP1All = document.getElementById('player1Weight').value === 'all';
+      const allP2All = document.getElementById('player2Weight').value === 'all';
+      const allP3All = document.getElementById('player3Weight').value === 'all';
+      const allAreAll = allP0All && allP1All && allP2All && allP3All;
 
-      let activeDebuffsPool = currentFilteredPool;
-      if (triggerSpecial) {
-        activeDebuffsPool = currentFilteredPool.filter(item => item.grouped !== true && item.grouped !== "true");
-        if (activeDebuffsPool.length === 0) activeDebuffsPool = fallbackDebuffs;
+      // 只有在全部选手都选“全部”难度时，才触发特殊组合机制
+      if (allAreAll && specialDebuffPool.length > 0 && Math.random() < 0.1 && specialCooldownCounter >= 3) {
+        triggerSpecial = true;
       }
 
       if (triggerSpecial) {
@@ -392,137 +403,75 @@
         const t1SpecialPick = Math.floor(Math.random() * 2); 
         if (t1SpecialPick === 0) {
           wonDebuffs[0] = specialItem;
-          const p1Eligible = activeDebuffsPool.filter(item => !playerHistory.p1.includes(String(item.id)) && String(item.weight) === specialWeight);
-          wonDebuffs[1] = getRandomItem(p1Eligible) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[1];
+          const p1PoolBase = getFilteredPoolForPlayer(1);
+          const p1Eligible = p1PoolBase.filter(item => !playerHistory.p1.includes(String(item.id)));
+          wonDebuffs[1] = getRandomItem(p1Eligible) || getRandomItem(p1PoolBase) || fallbackDebuffs[1];
           chosenIds.push(String(wonDebuffs[1].id));
         } else {
           wonDebuffs[1] = specialItem;
-          const p0Eligible = activeDebuffsPool.filter(item => !playerHistory.p0.includes(String(item.id)) && String(item.weight) === specialWeight);
-          wonDebuffs[0] = getRandomItem(p0Eligible) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[0];
+          const p0PoolBase = getFilteredPoolForPlayer(0);
+          const p0Eligible = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
+          wonDebuffs[0] = getRandomItem(p0Eligible) || getRandomItem(p0PoolBase) || fallbackDebuffs[0];
           chosenIds.push(String(wonDebuffs[0].id));
         }
 
         const t2SpecialPick = Math.floor(Math.random() * 2); 
         if (t2SpecialPick === 0) {
           wonDebuffs[2] = specialItem;
-          const p3Eligible = activeDebuffsPool.filter(item => !playerHistory.p3.includes(String(item.id)) && String(item.weight) === specialWeight && !chosenIds.includes(String(item.id)));
-          wonDebuffs[3] = getRandomItem(p3Eligible) || getRandomItem(activeDebuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[3];
+          const p3PoolBase = getFilteredPoolForPlayer(3);
+          const p3Eligible = p3PoolBase.filter(item => !playerHistory.p3.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
+          wonDebuffs[3] = getRandomItem(p3Eligible) || getRandomItem(p3PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[3];
           chosenIds.push(String(wonDebuffs[3].id));
         } else {
           wonDebuffs[3] = specialItem;
-          const p2Eligible = activeDebuffsPool.filter(item => !playerHistory.p2.includes(String(item.id)) && String(item.weight) === specialWeight && !chosenIds.includes(String(item.id)));
-          wonDebuffs[2] = getRandomItem(p2Eligible) || getRandomItem(activeDebuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[2];
+          const p2PoolBase = getFilteredPoolForPlayer(2);
+          const p2Eligible = p2PoolBase.filter(item => !playerHistory.p2.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
+          wonDebuffs[2] = getRandomItem(p2Eligible) || getRandomItem(p2PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[2];
           chosenIds.push(String(wonDebuffs[2].id));
         }
 
       } else {
-        const p0Pool = activeDebuffsPool.filter(item => !playerHistory.p0.includes(String(item.id)));
-        wonDebuffs[0] = getRandomItem(p0Pool) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[0];
+        // 常规 2v2 按各选手独立难度抽取
+        const p0PoolBase = getFilteredPoolForPlayer(0);
+        const p0Pool = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
+        wonDebuffs[0] = getRandomItem(p0Pool) || getRandomItem(p0PoolBase) || fallbackDebuffs[0];
         chosenIds.push(String(wonDebuffs[0].id));
 
         const p0Bans = (wonDebuffs[0] && Array.isArray(wonDebuffs[0].ban)) ? wonDebuffs[0].ban.map(String) : [];
-        const p2Eligible = activeDebuffsPool.filter(item => 
+        const p2PoolBase = getFilteredPoolForPlayer(2);
+        const p2Eligible = p2PoolBase.filter(item => 
           !playerHistory.p2.includes(String(item.id)) &&
-          String(item.weight) === String(wonDebuffs[0].weight) && 
           !p0Bans.includes(String(item.id)) && 
           !chosenIds.includes(String(item.id))
         );
-        wonDebuffs[2] = getRandomItem(p2Eligible) || getRandomItem(activeDebuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[2];
+        wonDebuffs[2] = getRandomItem(p2Eligible) || getRandomItem(p2PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || getRandomItem(p2PoolBase) || fallbackDebuffs[2];
         chosenIds.push(String(wonDebuffs[2].id));
 
-        const p1Pool = activeDebuffsPool.filter(item => !chosenIds.includes(String(item.id)) && !playerHistory.p1.includes(String(item.id)));
-        wonDebuffs[1] = getRandomItem(p1Pool) || getRandomItem(activeDebuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[1];
+        const p1PoolBase = getFilteredPoolForPlayer(1);
+        const p1Pool = p1PoolBase.filter(item => !chosenIds.includes(String(item.id)) && !playerHistory.p1.includes(String(item.id)));
+        wonDebuffs[1] = getRandomItem(p1Pool) || getRandomItem(p1PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || getRandomItem(p1PoolBase) || fallbackDebuffs[1];
         chosenIds.push(String(wonDebuffs[1].id));
 
         const p1Bans = (wonDebuffs[1] && Array.isArray(wonDebuffs[1].ban)) ? wonDebuffs[1].ban.map(String) : [];
-        const p3Eligible = activeDebuffsPool.filter(item => 
+        const p3PoolBase = getFilteredPoolForPlayer(3);
+        const p3Eligible = p3PoolBase.filter(item => 
           !playerHistory.p3.includes(String(item.id)) &&
-          String(item.weight) === String(wonDebuffs[1].weight) && 
           !p1Bans.includes(String(item.id)) && 
           !chosenIds.includes(String(item.id))
         );
-        wonDebuffs[3] = getRandomItem(p3Eligible) || getRandomItem(activeDebuffsPool.filter(item => !chosenIds.includes(String(item.id)))) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[3];
+        wonDebuffs[3] = getRandomItem(p3Eligible) || getRandomItem(p3PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || getRandomItem(p3PoolBase) || fallbackDebuffs[3];
         chosenIds.push(String(wonDebuffs[3].id));
 
-        let team1HasGroup = false;
-        let team2HasGroup = false;
-
+        // 处理组合 (grouped) Debuff 同组同步规则
         const p0Grouped = wonDebuffs[0].grouped === true || wonDebuffs[0].grouped === "true";
         const p1Grouped = wonDebuffs[1].grouped === true || wonDebuffs[1].grouped === "true";
-        if (p0Grouped) { wonDebuffs[1] = wonDebuffs[0]; team1HasGroup = true; } 
-        else if (p1Grouped) { wonDebuffs[0] = wonDebuffs[1]; team1HasGroup = true; }
+        if (p0Grouped) { wonDebuffs[1] = wonDebuffs[0]; } 
+        else if (p1Grouped) { wonDebuffs[0] = wonDebuffs[1]; }
 
         const p2Grouped = wonDebuffs[2].grouped === true || wonDebuffs[2].grouped === "true";
         const p3Grouped = wonDebuffs[3].grouped === true || wonDebuffs[3].grouped === "true";
-        if (p2Grouped) { wonDebuffs[3] = wonDebuffs[2]; team2HasGroup = true; } 
-        else if (p3Grouped) { wonDebuffs[2] = wonDebuffs[3]; team2HasGroup = true; }
-
-        const w1 = Number(wonDebuffs[0].weight) || 0;
-        const w2 = Number(wonDebuffs[2].weight) || 0;
-
-        if (team1HasGroup && team2HasGroup) {
-          if (w1 !== w2) {
-            const t2GroupEligible = activeDebuffsPool.filter(item => 
-              (item.grouped === true || item.grouped === "true") &&
-              Number(item.weight) === w1 &&
-              !playerHistory.p2.includes(String(item.id)) &&
-              !playerHistory.p3.includes(String(item.id))
-            );
-            const finalGroupDebuff = getRandomItem(t2GroupEligible) || wonDebuffs[0];
-            wonDebuffs[2] = finalGroupDebuff;
-            wonDebuffs[3] = finalGroupDebuff;
-          }
-        } 
-        else if (team1HasGroup) {
-          let p2ReSpun = false;
-          let p3ReSpun = false;
-
-          if ((Number(wonDebuffs[2].weight) || 0) > w1) {
-            const p2ReEligible = activeDebuffsPool.filter(item => (Number(item.weight) || 0) <= w1 && !playerHistory.p2.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
-            wonDebuffs[2] = getRandomItem(p2ReEligible) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[2];
-            p2ReSpun = true;
-          }
-          if ((Number(wonDebuffs[3].weight) || 0) > w1) {
-            const p3ReEligible = activeDebuffsPool.filter(item => (Number(item.weight) || 0) <= w1 && !playerHistory.p3.includes(String(item.id)) && !chosenIds.includes(String(item.id)) && String(item.id) !== String(wonDebuffs[2].id));
-            wonDebuffs[3] = getRandomItem(p3ReEligible) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[3];
-            p3ReSpun = true;
-          }
-
-          if (p2ReSpun || p3ReSpun) {
-            const newP2Grouped = wonDebuffs[2].grouped === true || wonDebuffs[2].grouped === "true";
-            const newP3Grouped = wonDebuffs[3].grouped === true || wonDebuffs[3].grouped === "true";
-            if (newP2Grouped) {
-              wonDebuffs[3] = wonDebuffs[2];
-            } else if (newP3Grouped) {
-              wonDebuffs[2] = wonDebuffs[3];
-            }
-          }
-        } 
-        else if (team2HasGroup) {
-          let p0ReSpun = false;
-          let p1ReSpun = false;
-
-          if ((Number(wonDebuffs[0].weight) || 0) > w2) {
-            const p0ReEligible = activeDebuffsPool.filter(item => (Number(item.weight) || 0) <= w2 && !playerHistory.p0.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
-            wonDebuffs[0] = getRandomItem(p0ReEligible) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[0];
-            p0ReSpun = true;
-          }
-          if ((Number(wonDebuffs[1].weight) || 0) > w2) {
-            const p1ReEligible = activeDebuffsPool.filter(item => (Number(item.weight) || 0) <= w2 && !playerHistory.p1.includes(String(item.id)) && !chosenIds.includes(String(item.id)) && String(item.id) !== String(wonDebuffs[0].id));
-            wonDebuffs[1] = getRandomItem(p1ReEligible) || getRandomItem(activeDebuffsPool) || fallbackDebuffs[1];
-            p1ReSpun = true;
-          }
-
-          if (p0ReSpun || p1ReSpun) {
-            const newP0Grouped = wonDebuffs[0].grouped === true || wonDebuffs[0].grouped === "true";
-            const newP1Grouped = wonDebuffs[1].grouped === true || wonDebuffs[1].grouped === "true";
-            if (newP0Grouped) {
-              wonDebuffs[1] = wonDebuffs[0];
-            } else if (newP1Grouped) {
-              wonDebuffs[0] = wonDebuffs[1];
-            }
-          }
-        }
+        if (p2Grouped) { wonDebuffs[3] = wonDebuffs[2]; } 
+        else if (p3Grouped) { wonDebuffs[2] = wonDebuffs[3]; }
       }
 
       updatePlayerHistory('p0', wonDebuffs[0].id);
@@ -556,7 +505,7 @@
       }
     };
 
-    const animationPool = (triggerSpecial && specialDebuffPool.length > 0) ? [...currentFilteredPool, ...specialDebuffPool] : currentFilteredPool;
+    const animationPool = (triggerSpecial && specialDebuffPool.length > 0) ? [...debuffsPool, ...specialDebuffPool] : debuffsPool;
     
     animateReel(reelMap, mapsPool.map(m => m.name), wonMap.name, checkAllFinished);
 
