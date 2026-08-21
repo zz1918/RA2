@@ -1,1254 +1,676 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>公平的debuff抽取机</title>
-    <style>
-        :root {
-            --primary: #6366f1;
-            --primary-hover: #4f46e5;
-            --bg: #0f172a;
-            --card-bg: #1e293b;
-            --text: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent: #f59e0b;
-            --border: #334155;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>公平的debuff抽取机</title>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #f59e0b;
+      --border: #334155;
+    }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: system-ui, -apple-system, sans-serif;
-        }
-        body {
-            background-color: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .nav-tabs {
-            display: flex;
-            width: 100%;
-            background: #090d16;
-            border-bottom: 1px solid var(--border);
-            justify-content: center;
-        }
-        .tab-button {
-            background: transparent;
-            color: var(--text-muted);
-            padding: 1rem 2.5rem;
-            font-size: 1.1rem;
-            font-weight: 700;
-            border: none;
-            border-bottom: 3px solid transparent;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        .tab-button.active {
-            color: var(--primary);
-            border-bottom-color: var(--primary);
-            background: rgba(99, 102, 241, 0.05);
-        }
-        .main-content {
-            width: 100%;
-            max-width: 1500px;
-            padding: 2rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .site-title {
-            font-size: 2.5rem;
-            font-weight: 800;
-            margin-bottom: 1.5rem;
-            text-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
-        }
-        .site-title .hell-badge {
-            background: #dc2626;
-            color: #fff;
-            font-size: 1.2rem;
-            padding: 0.1rem 1.2rem;
-            border-radius: 40px;
-            margin-left: 0.8rem;
-            text-shadow: 0 0 20px rgba(220, 38, 38, 0.6);
-            box-shadow: 0 0 20px rgba(220, 38, 38, 0.3);
-            display: inline-block;
-            vertical-align: middle;
-            font-weight: 700;
-        }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+    .nav-tabs { display: flex; width: 100%; background: #090d16; border-bottom: 1px solid var(--border); justify-content: center; }
+    .tab-button { background: transparent; color: var(--text-muted); padding: 1rem 2.5rem; font-size: 1.1rem; font-weight: 700; border: none; border-bottom: 3px solid transparent; cursor: pointer; transition: all 0.2s ease; }
+    .tab-button.active { color: var(--primary); border-bottom-color: var(--primary); background: rgba(99, 102, 241, 0.05); }
+    .main-content { width: 100%; max-width: 1500px; padding: 2rem; display: flex; flex-direction: column; align-items: center; }
+    .site-title { font-size: 2.5rem; font-weight: 800; margin-bottom: 1.5rem; text-shadow: 0 0 15px rgba(99, 102, 241, 0.5); }
+    
+    /* 图鉴入口按钮区 */
+    .wiki-actions { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+    .btn-wiki { background: rgba(99, 102, 241, 0.15); border: 1px solid var(--primary); color: #a5b4fc; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 0.5rem; }
+    .btn-wiki:hover { background: var(--primary); color: #fff; box-shadow: 0 0 10px rgba(99, 102, 241, 0.4); }
 
-        .wiki-actions {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-        .btn-wiki {
-            background: rgba(99, 102, 241, 0.15);
-            border: 1px solid var(--primary);
-            color: #a5b4fc;
-            padding: 0.6rem 1.2rem;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .btn-wiki:hover {
-            background: var(--primary);
-            color: #fff;
-            box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
-        }
+    .app-container { display: grid; grid-template-columns: 1fr 350px; gap: 2rem; width: 100%; background: var(--card-bg); padding: 2rem; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+    @media (max-width: 968px) { .app-container { grid-template-columns: 1fr; } }
+    .slot-section { display: flex; flex-direction: column; align-items: center; gap: 1.5rem; width: 100%; }
+    .row-container { width: 100%; display: flex; flex-direction: column; gap: 1rem; }
+    .slot-window { position: relative; width: 100%; height: 90px; background: #090d16; border: 3px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .slot-window::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; border-top: 20px solid rgba(9, 13, 22, 0.6); border-bottom: 20px solid rgba(9, 13, 22, 0.6); z-index: 2; pointer-events: none; }
+    .slot-window::after { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 70px; transform: translateY(-50%); border-top: 2px solid var(--accent); border-bottom: 2px solid var(--accent); z-index: 3; pointer-events: none; }
+    .slot-reel { display: flex; flex-direction: column; position: absolute; width: 100%; top: 0; left: 0; will-change: transform; }
+    .slot-item { height: 70px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 600; color: #fff; text-align: center; padding: 0 1rem; padding-top: 10px; }
+    
+    /* 选手标题与难度控制独立栏 */
+    .player-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; flex-wrap: wrap; gap: 0.5rem; }
+    .select-weight-player { background-color: #090d16; border: 1px solid var(--border); color: var(--text); padding: 0.3rem 0.6rem; border-radius: 6px; font-weight: 600; font-size: 0.85rem; outline: none; cursor: pointer; }
+    .select-weight-player:focus { border-color: var(--primary); }
 
-        .app-container {
-            display: grid;
-            grid-template-columns: 1fr 350px;
-            gap: 2rem;
-            width: 100%;
-            background: var(--card-bg);
-            padding: 2rem;
-            border-radius: 16px;
-            border: 1px solid var(--border);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        }
-        @media (max-width: 968px) {
-            .app-container {
-                grid-template-columns: 1fr;
-            }
-        }
-        .slot-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1.5rem;
-            width: 100%;
-        }
-        .row-container {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        .slot-window {
-            position: relative;
-            width: 100%;
-            height: 90px;
-            background: #090d16;
-            border: 3px solid var(--border);
-            border-radius: 12px;
-            overflow: hidden;
-        }
-        .slot-window::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            border-top: 20px solid rgba(9, 13, 22, 0.6);
-            border-bottom: 20px solid rgba(9, 13, 22, 0.6);
-            z-index: 2;
-            pointer-events: none;
-        }
-        .slot-window::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 70px;
-            transform: translateY(-50%);
-            border-top: 2px solid var(--accent);
-            border-bottom: 2px solid var(--accent);
-            z-index: 3;
-            pointer-events: none;
-        }
-        .slot-reel {
-            display: flex;
-            flex-direction: column;
-            position: absolute;
-            width: 100%;
-            top: 0;
-            left: 0;
-            will-change: transform;
-        }
-        .slot-item {
-            height: 70px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #fff;
-            text-align: center;
-            padding: 0 1rem;
-            padding-top: 10px;
-        }
+    /* 控制栏样式 */
+    .controls { display: flex; gap: 1rem; width: 100%; margin-top: 1rem; align-items: center; }
+    .btn-spin { background-color: var(--primary); color: white; flex: 1; padding: 0.85rem; font-size: 1rem; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; }
+    .btn-spin:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-reset { background-color: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 0.85rem 1.2rem; border-radius: 8px; cursor: pointer; }
 
-        .player-header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.4rem;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-        .select-weight-player {
-            background-color: #090d16;
-            border: 1px solid var(--border);
-            color: var(--text);
-            padding: 0.3rem 0.6rem;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 0.85rem;
-            outline: none;
-            cursor: pointer;
-        }
-        .select-weight-player:focus {
-            border-color: var(--primary);
-        }
-        .select-weight-player option.hell-option {
-            background: #7f1d1d;
-            color: #fca5a5;
-            font-weight: 700;
-        }
+    .faq-section { border-left: 1px solid var(--border); padding-left: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+    .faq-title { font-size: 1.2rem; font-weight: 700; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; }
+    .faq-box { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+    .faq-box h3 { font-size: 0.95rem; color: var(--accent); margin-bottom: 0.5rem; }
+    .faq-box p { white-space: pre-line; }
+    .inline-player-input { width: 120px; padding: 0.2rem; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border); border-radius: 6px; color: var(--accent); font-weight: 700; text-align: center; outline: none; }
+    .row-title { font-size: 1.1rem; color: var(--text-muted); }
 
-        .controls {
-            display: flex;
-            gap: 1rem;
-            width: 100%;
-            margin-top: 1rem;
-            align-items: center;
-        }
-        .btn-spin {
-            background-color: var(--primary);
-            color: white;
-            flex: 1;
-            padding: 0.85rem;
-            font-size: 1rem;
-            font-weight: 600;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-        .btn-spin:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .btn-reset {
-            background-color: transparent;
-            border: 1px solid var(--border);
-            color: var(--text-muted);
-            padding: 0.85rem 1.2rem;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-
-        .faq-section {
-            border-left: 1px solid var(--border);
-            padding-left: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        .faq-title {
-            font-size: 1.2rem;
-            font-weight: 700;
-            border-bottom: 2px solid var(--border);
-            padding-bottom: 0.5rem;
-        }
-        .faq-box {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--border);
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-        .faq-box h3 {
-            font-size: 0.95rem;
-            color: var(--accent);
-            margin-bottom: 0.5rem;
-        }
-        .faq-box p {
-            white-space: pre-line;
-        }
-        .inline-player-input {
-            width: 120px;
-            padding: 0.2rem;
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            color: var(--accent);
-            font-weight: 700;
-            text-align: center;
-            outline: none;
-        }
-        .row-title {
-            font-size: 1.1rem;
-            color: var(--text-muted);
-        }
-
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(4px);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .modal-overlay.active {
-            display: flex;
-        }
-        .modal-container {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            width: 90%;
-            max-width: 1100px;
-            max-height: 85vh;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-            overflow: hidden;
-        }
-        .modal-header {
-            padding: 1.2rem 1.5rem;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #090d16;
-        }
-        .modal-tabs {
-            display: flex;
-            gap: 0.5rem;
-        }
-        .modal-tab-btn {
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--text-muted);
-            padding: 0.4rem 1rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-        .modal-tab-btn.active {
-            background: var(--primary);
-            color: #fff;
-            border-color: var(--primary);
-        }
-        .modal-close {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            font-size: 1.5rem;
-            cursor: pointer;
-            padding: 0 0.5rem;
-        }
-        .modal-close:hover {
-            color: #fff;
-        }
-        .modal-body {
-            padding: 1.5rem;
-            overflow-y: auto;
-            flex: 1;
-        }
-
-        .wiki-table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: left;
-            font-size: 0.95rem;
-        }
-        .wiki-table th,
-        .wiki-table td {
-            padding: 0.8rem 1rem;
-            border-bottom: 1px solid var(--border);
-            vertical-align: top;
-        }
-        .wiki-table th {
-            background: rgba(15, 23, 42, 0.8);
-            color: var(--text-muted);
-            font-weight: 700;
-            position: sticky;
-            top: -1.5rem;
-            z-index: 10;
-        }
-        .wiki-table tr:hover {
-            background: rgba(255, 255, 255, 0.02);
-        }
-
-        .badge-weight {
-            display: inline-block;
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            font-weight: 700;
-        }
-        .weight-1 {
-            background: rgba(34, 197, 94, 0.2);
-            color: #4ade80;
-            border: 1px solid rgba(34, 197, 94, 0.3);
-        }
-        .weight-2 {
-            background: rgba(245, 158, 11, 0.2);
-            color: #fbbf24;
-            border: 1px solid rgba(245, 158, 11, 0.3);
-        }
-        .weight-3 {
-            background: rgba(239, 68, 68, 0.2);
-            color: #f87171;
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
-        .weight-special {
-            background: rgba(168, 85, 247, 0.2);
-            color: #c084fc;
-            border: 1px solid rgba(168, 85, 247, 0.4);
-            text-shadow: 0 0 5px rgba(168, 85, 247, 0.4);
-        }
-        .weight-hell {
-            background: rgba(220, 38, 38, 0.25);
-            color: #fca5a5;
-            border: 1px solid rgba(220, 38, 38, 0.5);
-            text-shadow: 0 0 12px rgba(220, 38, 38, 0.5);
-            font-weight: 800;
-        }
-
-        .badge-grouped {
-            background: rgba(99, 102, 241, 0.2);
-            color: #a5b4fc;
-            border: 1px solid rgba(99, 102, 241, 0.3);
-            padding: 0.1rem 0.4rem;
-            border-radius: 4px;
-            font-size: 0.8rem;
-        }
-        .ban-item {
-            display: inline-block;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 0.1rem 0.4rem;
-            border-radius: 4px;
-            margin: 0.1rem;
-            font-size: 0.85rem;
-            border: 1px solid var(--border);
-        }
-        .site-footer {
-            margin-top: 1.5rem;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
-        .site-footer a {
-            color: var(--primary);
-            text-decoration: none;
-        }
-        .site-footer a:hover {
-            text-decoration: underline;
-        }
-
-        .hell-mode-indicator {
-            display: none;
-            background: rgba(220, 38, 38, 0.15);
-            border: 1px solid #dc2626;
-            color: #fca5a5;
-            padding: 0.4rem 1.2rem;
-            border-radius: 30px;
-            font-weight: 700;
-            font-size: 0.9rem;
-            margin-left: 1rem;
-            vertical-align: middle;
-            box-shadow: 0 0 20px rgba(220, 38, 38, 0.15);
-        }
-        .hell-mode-indicator.active {
-            display: inline-block;
-        }
-    </style>
+    /* 图鉴 Modal 弹窗样式 */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 1000; }
+    .modal-overlay.active { display: flex; }
+    .modal-container { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; width: 90%; max-width: 1100px; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); overflow: hidden; }
+    .modal-header { padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #090d16; }
+    .modal-tabs { display: flex; gap: 0.5rem; }
+    .modal-tab-btn { background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 0.4rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    .modal-tab-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .modal-close { background: transparent; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; padding: 0 0.5rem; }
+    .modal-close:hover { color: #fff; }
+    .modal-body { padding: 1.5rem; overflow-y: auto; flex: 1; }
+    
+    /* 图鉴表格样式 */
+    .wiki-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem; }
+    .wiki-table th, .wiki-table td { padding: 0.8rem 1rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .wiki-table th { background: rgba(15, 23, 42, 0.8); color: var(--text-muted); font-weight: 700; position: sticky; top: -1.5rem; z-index: 10; }
+    .wiki-table tr:hover { background: rgba(255, 255, 255, 0.02); }
+    
+    /* 难度标签 Badge */
+    .badge-weight { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 700; }
+    .weight-1 { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+    .weight-2 { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .weight-3 { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .weight-special { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); text-shadow: 0 0 5px rgba(168, 85, 247, 0.4); }
+    
+    .badge-grouped { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.3); padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.8rem; }
+    .ban-item { display: inline-block; background: rgba(255, 255, 255, 0.05); padding: 0.1rem 0.4rem; border-radius: 4px; margin: 0.1rem; font-size: 0.85rem; border: 1px solid var(--border); }
+    .site-footer { margin-top: 1.5rem; color: var(--text-muted); font-size: 0.9rem; }
+    .site-footer a { color: var(--primary); text-decoration: none; }
+    .site-footer a:hover { text-decoration: underline; }
+  </style>
 </head>
 <body>
 
-    <div class="nav-tabs">
-        <button class="tab-button" id="tab-1v0" onclick="switchMode('1v0')">👤 单人限制模式</button>
-        <button class="tab-button active" id="tab-1v1" onclick="switchMode('1v1')">⚔️ 1v1 模式</button>
-        <button class="tab-button" id="tab-2v2" onclick="switchMode('2v2')">⚔️⚔️ 2v2 模式</button>
+<div class="nav-tabs">
+  <button class="tab-button" id="tab-1v0" onclick="switchMode('1v0')">👤 单人限制模式</button>
+  <button class="tab-button active" id="tab-1v1" onclick="switchMode('1v1')">⚔️ 1v1 模式</button>
+  <button class="tab-button" id="tab-2v2" onclick="switchMode('2v2')">⚔️⚔️ 2v2 模式</button>
+</div>
+
+<div class="main-content">
+  <h1 class="site-title" id="siteTitle">🎮 公平的双人Debuff抽取系统 (1v1)</h1>
+
+  <div class="wiki-actions">
+    <button class="btn-wiki" onclick="openWiki('debuff')">📖 查看 Debuff 图鉴</button>
+    <button class="btn-wiki" onclick="openWiki('map')">🗺️ 查看地图图鉴</button>
+  </div>
+
+  <div class="app-container">
+    <div class="slot-section">
+      <div class="row-container">
+        <div class="slot-row">
+          <div class="row-title" style="margin-bottom: 0.4rem;">🗺️ 比赛地图：</div>
+          <div class="slot-window" id="window-map">
+            <div class="slot-reel" id="reel-map"><div class="slot-item">等待抽取比赛地图...</div></div>
+          </div>
+        </div>
+        <div id="playersReelsContainer"></div>
+      </div>
+
+      <div class="controls">
+        <button class="btn-spin" id="spinBtn">摇一摇！</button>
+        <button class="btn-reset" id="resetBtn">重置</button>
+      </div>
     </div>
 
-    <div class="main-content">
-        <h1 class="site-title" id="siteTitle">
-            🎮 公平的双人Debuff抽取系统 (1v1)
-            <span class="hell-mode-indicator" id="hellIndicator">🔥 地狱模式</span>
-        </h1>
-
-        <div class="wiki-actions">
-            <button class="btn-wiki" onclick="openWiki('debuff')">📖 查看 Debuff 图鉴</button>
-            <button class="btn-wiki" onclick="openWiki('map')">🗺️ 查看地图图鉴</button>
-        </div>
-
-        <div class="app-container">
-            <div class="slot-section">
-                <div class="row-container">
-                    <div class="slot-row">
-                        <div class="row-title" style="margin-bottom: 0.4rem;">🗺️ 比赛地图：</div>
-                        <div class="slot-window" id="window-map">
-                            <div class="slot-reel" id="reel-map"><div class="slot-item">等待抽取比赛地图...</div></div>
-                        </div>
-                    </div>
-                    <div id="playersReelsContainer"></div>
-                </div>
-
-                <div class="controls">
-                    <button class="btn-spin" id="spinBtn">摇一摇！</button>
-                    <button class="btn-reset" id="resetBtn">重置</button>
-                </div>
-            </div>
-
-            <div class="faq-section">
-                <h2 class="faq-title">💡 当前 Debuff 规则答疑 (FAQ)</h2>
-                <div id="faq-content">
-                    <p style="color: var(--text-muted); font-style: italic;">暂无抽取的 Debuff 规则说明。</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="site-footer">
-            本页网址: <a href="https://ra2debuffroller.cn" target="_blank">ra2debuffroller.cn</a>
-        </div>
+    <div class="faq-section">
+      <h2 class="faq-title">💡 当前 Debuff 规则答疑 (FAQ)</h2>
+      <div id="faq-content">
+        <p style="color: var(--text-muted); font-style: italic;">暂无抽取的 Debuff 规则说明。</p>
+      </div>
     </div>
+  </div>
+  
+  <div class="site-footer">
+      本页网址: <a href="https://ra2debuffroller.cn" target="_blank">ra2debuffroller.cn</a>
+  </div>
+</div>
 
-    <div class="modal-overlay" id="wikiModal">
-        <div class="modal-container">
-            <div class="modal-header">
-                <div class="modal-tabs">
-                    <button class="modal-tab-btn" id="modal-tab-debuff" onclick="switchWikiTab('debuff')">Debuff 图鉴</button>
-                    <button class="modal-tab-btn" id="modal-tab-map" onclick="switchWikiTab('map')">地图图鉴</button>
-                </div>
-                <button class="modal-close" onclick="closeWiki()">&times;</button>
-            </div>
-            <div class="modal-body" id="wikiModalBody">
-            </div>
-        </div>
+<div class="modal-overlay" id="wikiModal">
+  <div class="modal-container">
+    <div class="modal-header">
+      <div class="modal-tabs">
+        <button class="modal-tab-btn" id="modal-tab-debuff" onclick="switchWikiTab('debuff')">Debuff 图鉴</button>
+        <button class="modal-tab-btn" id="modal-tab-map" onclick="switchWikiTab('map')">地图图鉴</button>
+      </div>
+      <button class="modal-close" onclick="closeWiki()">&times;</button>
     </div>
+    <div class="modal-body" id="wikiModalBody">
+      </div>
+  </div>
+</div>
 
-    <script>
-        let currentMode = '1v1';
-        let mapsPool = [];
-        let debuffsPool = [];
-        let specialDebuffPool = [];
-        let isSpinning = false;
-        const ITEM_HEIGHT = 70;
+<script>
+  let currentMode = '1v1';
+  let mapsPool = [];
+  let debuffsPool = [];
+  let specialDebuffPool = []; 
+  let isSpinning = false;
+  const ITEM_HEIGHT = 70;
 
-        // 历史记录
-        const playerHistory = {
-            p0: [],
-            p1: [],
-            p2: [],
-            p3: []
-        };
-        let mapHistory = [];
-        let specialCooldownCounter = 3;
+  // ==================== 历史记录状态 ====================
+  const playerHistory = {
+    p0: [],
+    p1: [],
+    p2: [],
+    p3: []
+  };
+  let mapHistory = [];
+  let specialCooldownCounter = 3; 
 
-        const spinBtn = document.getElementById('spinBtn');
-        const resetBtn = document.getElementById('resetBtn');
-        const reelMap = document.getElementById('reel-map');
-        const faqContent = document.getElementById('faq-content');
-        const playersContainer = document.getElementById('playersReelsContainer');
-        const siteTitle = document.getElementById('siteTitle');
-        const hellIndicator = document.getElementById('hellIndicator');
+  const spinBtn = document.getElementById('spinBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const reelMap = document.getElementById('reel-map');
+  const faqContent = document.getElementById('faq-content');
+  const playersContainer = document.getElementById('playersReelsContainer');
+  const siteTitle = document.getElementById('siteTitle');
 
-        const fallbackMaps = [{ id: 1, name: " [后备] 月球巡礼", num: 1 }];
-        const fallbackDebuffs = [
-            { id: 1, name: " [后备] 禁止使用鼠标", weight: 1, FAQ: "只能用纯键盘操作游戏。", ban: [], req_num: 1 },
-            { id: 2, name: " [后备] 禁止打开屏幕", weight: 1, FAQ: "请闭眼或者关掉显示器。", ban: [], req_num: 1 },
-            { id: 3, name: " [后备] 禁止眨眼", weight: 2, FAQ: "眨眼算输，坚持住！", ban: [], req_num: 1 },
-            { id: 4, name: " [后备] 禁止上厕所", weight: 3, FAQ: "打完这局再去！", ban: [], req_num: 1 }
-        ];
+  // 完美防卡死后备数据
+  const fallbackMaps = [{ id: 1, name: " [后备] 月球巡礼", num: 1 }];
+  const fallbackDebuffs = [
+    { id: 1, name: " [后备] 禁止使用鼠标", weight: 1, FAQ: "只能用纯键盘操作游戏。", ban: [], req_num: 1 },
+    { id: 2, name: " [后备] 禁止打开屏幕", weight: 1, FAQ: "请闭眼或者关掉显示器。", ban: [], req_num: 1 },
+    { id: 3, name: " [后备] 禁止眨眼", weight: 2, FAQ: "眨眼算输，坚持住！", ban: [], req_num: 1 },
+    { id: 4, name: " [后备] 禁止上厕所", weight: 3, FAQ: "打完这局再去！", ban: [], req_num: 1 }
+  ];
 
-        const defaultNames = {
-            '1v0': ['挑战者'],
-            '1v1': ['选手 A', '选手 B'],
-            '2v2': ['队伍1-选手A', '队伍1-选手B', '队伍2-选手A', '队伍2-选手B']
-        };
+  const defaultNames = {
+    '1v0': ['挑战者'],
+    '1v1': ['选手 A', '选手 B'],
+    '2v2': ['队伍1-选手A', '队伍1-选手B', '队伍2-选手A', '队伍2-选手B']
+  };
 
-        const modeTitles = {
-            '1v0': '🎮 公平的单人Debuff挑战模式',
-            '1v1': '🎮 公平的双人Debuff抽取系统 (1v1)',
-            '2v2': '🎮 公平的四人Debuff抽取系统 (2v2)'
-        };
+  const modeTitles = {
+    '1v0': '🎮 公平的单人Debuff挑战模式',
+    '1v1': '🎮 公平的双人Debuff抽取系统 (1v1)',
+    '2v2': '🎮 公平的四人Debuff抽取系统 (2v2)'
+  };
 
-        // ---------- 构建全局 hell 列表 ----------
-        function buildGlobalHellList(debuffs) {
-            const hellSet = new Set();
-            if (!debuffs || debuffs.length === 0) return [];
-            for (const d of debuffs) {
-                if (Array.isArray(d.hell) && d.hell.length > 0) {
-                    for (const id of d.hell) {
-                        hellSet.add(String(id));
-                    }
-                }
-            }
-            return Array.from(hellSet);
+  // 为每个选手单独渲染选框
+  function renderPlayerSlots() {
+    const names = defaultNames[currentMode];
+    let html = '';
+    names.forEach((name, index) => {
+      html += `
+        <div class="slot-row" style="margin-top: 1rem;">
+          <div class="player-header-row">
+            <div class="row-title">
+              👤 <input type="text" id="player${index}Name" class="inline-player-input" value="${name}" /> 的 Debuff：
+            </div>
+            <div>
+              <select class="select-weight-player" id="player${index}Weight" title="独立难度选择">
+                <option value="all">🎯 全部 </option>
+                <option value="1">🟢 简单 </option>
+                <option value="2">🟡 中等 </option>
+                <option value="3">🔴 困难 </option>
+              </select>
+            </div>
+          </div>
+          <div class="slot-window" id="window-p${index}">
+            <div class="slot-reel" id="reel-p${index}">
+              <div class="slot-item">等待抽取 debuff...</div>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    playersContainer.innerHTML = html;
+  }
+
+  async function switchMode(mode) {
+    if (isSpinning) return;
+    currentMode = mode;
+    document.getElementById('tab-1v0').classList.toggle('active', mode === '1v0');
+    document.getElementById('tab-1v1').classList.toggle('active', mode === '1v1');
+    document.getElementById('tab-2v2').classList.toggle('active', mode === '2v2');
+    siteTitle.innerText = modeTitles[mode];
+    renderPlayerSlots();
+    await loadData();
+  }
+
+  async function loadData() {
+    const mapFile = (currentMode === '1v0' || currentMode === '1v1') ? 'map.json' : 'map2.json';
+    const debuffFile = (currentMode === '1v0' || currentMode === '1v1') ? 'debuff.json' : 'debuff2.json';
+
+    try {
+      const [mapsRes, debuffsRes] = await Promise.all([
+        fetch(mapFile).then(r => r.ok ? r.json() : fallbackMaps).catch(() => fallbackMaps),
+        fetch(debuffFile).then(r => r.ok ? r.json() : fallbackDebuffs).catch(() => fallbackDebuffs)
+      ]);
+      mapsPool = (Array.isArray(mapsRes) && mapsRes.length > 0) ? mapsRes : fallbackMaps;
+      debuffsPool = (Array.isArray(debuffsRes) && debuffsRes.length > 0) ? debuffsRes : fallbackDebuffs;
+
+      if (currentMode === '2v2') {
+        specialDebuffPool = await fetch('debuff2s.json').then(r => r.ok ? r.json() : []).catch(() => []);
+      } else {
+        specialDebuffPool = [];
+      }
+    } catch (err) {
+      mapsPool = fallbackMaps;
+      debuffsPool = fallbackDebuffs;
+      specialDebuffPool = [];
+    }
+    resetDraw();
+  }
+
+  function resetDraw() {
+    if (isSpinning) return;
+    reelMap.style.transition = 'none';
+    reelMap.style.transform = 'translateY(0px)';
+    reelMap.innerHTML = '<div class="slot-item">等待抽取比赛地图...</div>';
+
+    defaultNames[currentMode].forEach((_, i) => {
+      const reel = document.getElementById(`reel-p${i}`);
+      if (reel) {
+        reel.style.transition = 'none';
+        reel.style.transform = 'translateY(0px)';
+        reel.innerHTML = '<div class="slot-item">等待抽取 debuff...</div>';
+      }
+    });
+    faqContent.innerHTML = '<p style="color: var(--text-muted); font-style: italic;">暂无抽取的 Debuff 规则说明。</p>';
+    spinBtn.disabled = false;
+  }
+
+  function getRandomItem(pool) {
+    if (!pool || pool.length === 0) return null;
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  function updatePlayerHistory(playerKey, debuffId) {
+    if (!debuffId) return;
+    playerHistory[playerKey].push(String(debuffId));
+    if (playerHistory[playerKey].length > 3) {
+      playerHistory[playerKey].shift();
+    }
+  }
+
+  function updateMapHistory(mapId) {
+    if (!mapId) return;
+    mapHistory.push(String(mapId));
+    if (mapHistory.length > 20) {
+      mapHistory.shift();
+    }
+  }
+
+  // 专属工具函数：根据选手 index 和难度设置，获取可用筛选池
+  function getFilteredPoolForPlayer(playerIndex, basePool = debuffsPool) {
+    const sel = document.getElementById(`player${playerIndex}Weight`);
+    const weightVal = sel ? sel.value : 'all';
+    if (weightVal === 'all') return basePool;
+    const filtered = basePool.filter(item => String(item.weight) === String(weightVal));
+    return filtered.length > 0 ? filtered : basePool; 
+  }
+
+  function animateReel(reel, allNames, targetName, callback) {
+    const spinSequence = [];
+    const totalItemsInSpin = 25;
+    const safeNames = allNames.length > 0 ? allNames : [targetName];
+
+    for (let i = 0; i < totalItemsInSpin - 1; i++) {
+      spinSequence.push(safeNames[Math.floor(Math.random() * safeNames.length)]);
+    }
+    spinSequence.push(targetName);
+
+    reel.style.transition = 'none';
+    reel.style.transform = 'translateY(0px)';
+    reel.innerHTML = spinSequence.map(name => `<div class="slot-item">${name}</div>`).join('');
+
+    reel.offsetHeight; 
+
+    const targetY = -((spinSequence.length - 1) * ITEM_HEIGHT);
+    reel.style.transition = 'transform 3s cubic-bezier(0.15, 0.85, 0.35, 1.0)';
+    reel.style.transform = `translateY(${targetY}px)`;
+
+    setTimeout(callback, 3100);
+  }
+
+  function spinAll() {
+    if (isSpinning) return;
+
+    isSpinning = true;
+    spinBtn.disabled = true;
+
+    const wonDebuffs = new Array(defaultNames[currentMode].length);
+    let chosenIds = []; 
+    let triggerSpecial = false;
+
+    // 单人模式 (1v0)
+    if (currentMode === '1v0') {
+      const p0PoolBase = getFilteredPoolForPlayer(0);
+      const p0Eligible = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
+      const p0 = getRandomItem(p0Eligible) || getRandomItem(p0PoolBase) || fallbackDebuffs[0];
+      wonDebuffs[0] = p0;
+      updatePlayerHistory('p0', wonDebuffs[0].id);
+
+    } else if (currentMode === '1v1') {
+      // P0 选池
+      const p0PoolBase = getFilteredPoolForPlayer(0);
+      const p0Eligible = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
+      const p0 = getRandomItem(p0Eligible) || getRandomItem(p0PoolBase) || fallbackDebuffs[0];
+      wonDebuffs[0] = p0;
+      chosenIds.push(String(p0.id));
+
+      // P1 选池：需要避开 P0 的 ban 列表，避开 P0 选到的 ID，且满足 P1 的独立难度与 3 次内不重复
+      const p1PoolBase = getFilteredPoolForPlayer(1);
+      const p0Bans = (p0 && Array.isArray(p0.ban)) ? p0.ban.map(String) : [];
+
+      let p1Eligible = p1PoolBase.filter(item => {
+        return !playerHistory.p1.includes(String(item.id)) &&
+               !p0Bans.includes(String(item.id)) && 
+               !chosenIds.includes(String(item.id));
+      });
+      
+      // 如果严苛筛选条件无解，退一步取消历史判定，但保留 Ban 判定
+      if (p1Eligible.length === 0) {
+        p1Eligible = p1PoolBase.filter(item => !p0Bans.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
+      }
+
+      const p1 = getRandomItem(p1Eligible) || getRandomItem(p1PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || getRandomItem(p1PoolBase) || fallbackDebuffs[1];
+      wonDebuffs[1] = p1;
+
+      updatePlayerHistory('p0', wonDebuffs[0].id);
+      updatePlayerHistory('p1', wonDebuffs[1].id);
+      specialCooldownCounter++;
+
+    } else {
+      // 2v2 模式
+      const allP0All = document.getElementById('player0Weight').value === 'all';
+      const allP1All = document.getElementById('player1Weight').value === 'all';
+      const allP2All = document.getElementById('player2Weight').value === 'all';
+      const allP3All = document.getElementById('player3Weight').value === 'all';
+      const allAreAll = allP0All && allP1All && allP2All && allP3All;
+
+      // 只有在全部选手都选“全部”难度时，才触发特殊组合机制
+      if (allAreAll && specialDebuffPool.length > 0 && Math.random() < 0.1 && specialCooldownCounter >= 3) {
+        triggerSpecial = true;
+      }
+
+      if (triggerSpecial) {
+        const specialItem = specialDebuffPool[0]; 
+        const specialWeight = String(specialItem.weight || 1); 
+
+        const t1SpecialPick = Math.floor(Math.random() * 2); 
+        if (t1SpecialPick === 0) {
+          wonDebuffs[0] = specialItem;
+          const p1PoolBase = getFilteredPoolForPlayer(1);
+          const p1Eligible = p1PoolBase.filter(item => !playerHistory.p1.includes(String(item.id)));
+          wonDebuffs[1] = getRandomItem(p1Eligible) || getRandomItem(p1PoolBase) || fallbackDebuffs[1];
+          chosenIds.push(String(wonDebuffs[1].id));
+        } else {
+          wonDebuffs[1] = specialItem;
+          const p0PoolBase = getFilteredPoolForPlayer(0);
+          const p0Eligible = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
+          wonDebuffs[0] = getRandomItem(p0Eligible) || getRandomItem(p0PoolBase) || fallbackDebuffs[0];
+          chosenIds.push(String(wonDebuffs[0].id));
         }
 
-        // ---------- 渲染选手槽 ----------
-        function renderPlayerSlots() {
-            const names = defaultNames[currentMode];
-            let html = '';
-            names.forEach((name, index) => {
-                // 单人模式下增加 "地狱" 选项
-                let weightOptions = `
-                    <option value="all">🎯 全部</option>
-                    <option value="1">🟢 简单</option>
-                    <option value="2">🟡 中等</option>
-                    <option value="3">🔴 困难</option>
-                `;
-                if (currentMode === '1v0') {
-                    weightOptions += `
-                        <option value="hell" class="hell-option" style="background:#7f1d1d;color:#fca5a5;font-weight:700;">🔥 地狱</option>
-                    `;
-                }
-                html += `
-                    <div class="slot-row" style="margin-top: 1rem;">
-                        <div class="player-header-row">
-                            <div class="row-title">
-                                👤 <input type="text" id="player${index}Name" class="inline-player-input" value="${name}" />
-                                ${currentMode === '1v0' ? ' 的 Debuff：' : ' 的 Debuff：'}
-                            </div>
-                            <div>
-                                <select class="select-weight-player" id="player${index}Weight" title="独立难度选择">
-                                    ${weightOptions}
-                                </select>
-                            </div>
-                        </div>
-                        <div class="slot-window" id="window-p${index}">
-                            <div class="slot-reel" id="reel-p${index}">
-                                <div class="slot-item">等待抽取 debuff...</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-            playersContainer.innerHTML = html;
-            // 地狱指示器默认隐藏
-            hellIndicator.classList.remove('active');
+        const t2SpecialPick = Math.floor(Math.random() * 2); 
+        if (t2SpecialPick === 0) {
+          wonDebuffs[2] = specialItem;
+          const p3PoolBase = getFilteredPoolForPlayer(3);
+          const p3Eligible = p3PoolBase.filter(item => !playerHistory.p3.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
+          wonDebuffs[3] = getRandomItem(p3Eligible) || getRandomItem(p3PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[3];
+          chosenIds.push(String(wonDebuffs[3].id));
+        } else {
+          wonDebuffs[3] = specialItem;
+          const p2PoolBase = getFilteredPoolForPlayer(2);
+          const p2Eligible = p2PoolBase.filter(item => !playerHistory.p2.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
+          wonDebuffs[2] = getRandomItem(p2Eligible) || getRandomItem(p2PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[2];
+          chosenIds.push(String(wonDebuffs[2].id));
         }
 
-        // ---------- 切换模式 ----------
-        async function switchMode(mode) {
-            if (isSpinning) return;
-            currentMode = mode;
-            document.getElementById('tab-1v0').classList.toggle('active', mode === '1v0');
-            document.getElementById('tab-1v1').classList.toggle('active', mode === '1v1');
-            document.getElementById('tab-2v2').classList.toggle('active', mode === '2v2');
-            siteTitle.innerText = modeTitles[mode];
-            hellIndicator.classList.remove('active');
-            renderPlayerSlots();
-            await loadData();
+      } else {
+        // 常规 2v2 按各选手独立难度抽取
+        const p0PoolBase = getFilteredPoolForPlayer(0);
+        const p0Pool = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
+        wonDebuffs[0] = getRandomItem(p0Pool) || getRandomItem(p0PoolBase) || fallbackDebuffs[0];
+        chosenIds.push(String(wonDebuffs[0].id));
+
+        const p0Bans = (wonDebuffs[0] && Array.isArray(wonDebuffs[0].ban)) ? wonDebuffs[0].ban.map(String) : [];
+        const p2PoolBase = getFilteredPoolForPlayer(2);
+        const p2Eligible = p2PoolBase.filter(item => 
+          !playerHistory.p2.includes(String(item.id)) &&
+          !p0Bans.includes(String(item.id)) && 
+          !chosenIds.includes(String(item.id))
+        );
+        wonDebuffs[2] = getRandomItem(p2Eligible) || getRandomItem(p2PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || getRandomItem(p2PoolBase) || fallbackDebuffs[2];
+        chosenIds.push(String(wonDebuffs[2].id));
+
+        const p1PoolBase = getFilteredPoolForPlayer(1);
+        const p1Pool = p1PoolBase.filter(item => !chosenIds.includes(String(item.id)) && !playerHistory.p1.includes(String(item.id)));
+        wonDebuffs[1] = getRandomItem(p1Pool) || getRandomItem(p1PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || getRandomItem(p1PoolBase) || fallbackDebuffs[1];
+        chosenIds.push(String(wonDebuffs[1].id));
+
+        const p1Bans = (wonDebuffs[1] && Array.isArray(wonDebuffs[1].ban)) ? wonDebuffs[1].ban.map(String) : [];
+        const p3PoolBase = getFilteredPoolForPlayer(3);
+        const p3Eligible = p3PoolBase.filter(item => 
+          !playerHistory.p3.includes(String(item.id)) &&
+          !p1Bans.includes(String(item.id)) && 
+          !chosenIds.includes(String(item.id))
+        );
+        wonDebuffs[3] = getRandomItem(p3Eligible) || getRandomItem(p3PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || getRandomItem(p3PoolBase) || fallbackDebuffs[3];
+        chosenIds.push(String(wonDebuffs[3].id));
+
+        // 处理组合 (grouped) Debuff 同组同步规则
+        const p0Grouped = wonDebuffs[0].grouped === true || wonDebuffs[0].grouped === "true";
+        const p1Grouped = wonDebuffs[1].grouped === true || wonDebuffs[1].grouped === "true";
+        if (p0Grouped) { wonDebuffs[1] = wonDebuffs[0]; } 
+        else if (p1Grouped) { wonDebuffs[0] = wonDebuffs[1]; }
+
+        const p2Grouped = wonDebuffs[2].grouped === true || wonDebuffs[2].grouped === "true";
+        const p3Grouped = wonDebuffs[3].grouped === true || wonDebuffs[3].grouped === "true";
+        if (p2Grouped) { wonDebuffs[3] = wonDebuffs[2]; } 
+        else if (p3Grouped) { wonDebuffs[2] = wonDebuffs[3]; }
+      }
+
+      updatePlayerHistory('p0', wonDebuffs[0].id);
+      updatePlayerHistory('p1', wonDebuffs[1].id);
+      updatePlayerHistory('p2', wonDebuffs[2].id);
+      updatePlayerHistory('p3', wonDebuffs[3].id);
+
+      if (triggerSpecial) {
+        specialCooldownCounter = 0; 
+      } else {
+        specialCooldownCounter++; 
+      }
+    }
+
+    const requiredMinPlayers = Math.max(...wonDebuffs.map(d => d ? (Number(d.req_num) || 0) : 0));
+    const baseMapsPool = mapsPool.filter(map => (Number(map.num) || 0) >= requiredMinPlayers);
+    const filteredMapsPool = baseMapsPool.filter(map => !mapHistory.includes(String(map.id)));
+    const wonMap = getRandomItem(filteredMapsPool) || getRandomItem(baseMapsPool) || getRandomItem(mapsPool) || fallbackMaps[0];
+    updateMapHistory(wonMap.id);
+
+    let finishedCount = 0;
+    const playerCount = wonDebuffs.length;
+    const totalAnimations = 1 + playerCount;
+
+    const checkAllFinished = () => {
+      finishedCount++;
+      if (finishedCount === totalAnimations) {
+        isSpinning = false;
+        spinBtn.disabled = false;
+        renderFAQ(wonDebuffs);
+      }
+    };
+
+    const animationPool = (triggerSpecial && specialDebuffPool.length > 0) ? [...debuffsPool, ...specialDebuffPool] : debuffsPool;
+    
+    animateReel(reelMap, mapsPool.map(m => m.name), wonMap.name, checkAllFinished);
+
+    for (let i = 0; i < playerCount; i++) {
+      const reel = document.getElementById(`reel-p${i}`);
+      if (reel) {
+        animateReel(reel, animationPool.map(d => d.name), wonDebuffs[i] ? wonDebuffs[i].name : "无", checkAllFinished);
+      } else {
+        checkAllFinished();
+      }
+    }
+  }
+
+  function renderFAQ(wonDebuffs) {
+    let html = '';
+    wonDebuffs.forEach((debuff, i) => {
+      if (!debuff) return;
+      const playerInput = document.getElementById(`player${i}Name`);
+      const playerName = playerInput ? playerInput.value.trim() : `选手 ${i+1}`;
+      html += `
+        <div class="faq-box">
+          <h3>${playerName} 的规则补充:</h3>
+          <p><strong>${debuff.name}</strong></p>
+          <p style="margin-top:0.4rem; font-size:0.9rem; color:var(--text-muted);">${debuff.FAQ || '暂无详细说明'}</p>
+        </div>
+      `;
+    });
+    faqContent.innerHTML = html;
+  }
+
+  // ==================== 图鉴功能 (Wiki Module) ====================
+  const wikiModal = document.getElementById('wikiModal');
+  const wikiModalBody = document.getElementById('wikiModalBody');
+  let currentWikiTab = 'debuff';
+
+  function getWeightBadge(item, isSpecial = false) {
+    if (isSpecial || item.isSpecial || String(item.weight).toLowerCase() === 'special') {
+      return '<span class="badge-weight weight-special">特殊</span>';
+    }
+    const w = String(item.weight);
+    if (w === '1') return '<span class="badge-weight weight-1">简单</span>';
+    if (w === '2') return '<span class="badge-weight weight-2">中等</span>';
+    if (w === '3') return '<span class="badge-weight weight-3">困难</span>';
+    return `<span class="badge-weight weight-special">特殊</span>`;
+  }
+
+  function openWiki(tab = 'debuff') {
+    wikiModal.classList.add('active');
+    switchWikiTab(tab);
+  }
+
+  function closeWiki() {
+    wikiModal.classList.remove('active');
+  }
+
+  function switchWikiTab(tab) {
+    currentWikiTab = tab;
+    document.getElementById('modal-tab-debuff').classList.toggle('active', tab === 'debuff');
+    document.getElementById('modal-tab-map').classList.toggle('active', tab === 'map');
+
+    if (tab === 'debuff') {
+      renderDebuffWiki();
+    } else {
+      renderMapWiki();
+    }
+  }
+
+  function renderDebuffWiki() {
+    const combinedDebuffs = debuffsPool.map(d => ({ ...d, isSpecial: false }));
+
+    if (specialDebuffPool && specialDebuffPool.length > 0) {
+      specialDebuffPool.forEach(sp => {
+        if (!combinedDebuffs.some(d => d.id === sp.id && d.name === sp.name)) {
+          combinedDebuffs.push({ ...sp, isSpecial: true });
         }
-
-        // ---------- 加载数据 ----------
-        async function loadData() {
-            const mapFile = (currentMode === '1v0' || currentMode === '1v1') ? 'map.json' : 'map2.json';
-            const debuffFile = (currentMode === '1v0' || currentMode === '1v1') ? 'debuff.json' : 'debuff2.json';
-
-            try {
-                const [mapsRes, debuffsRes] = await Promise.all([
-                    fetch(mapFile).then(r => r.ok ? r.json() : fallbackMaps).catch(() => fallbackMaps),
-                    fetch(debuffFile).then(r => r.ok ? r.json() : fallbackDebuffs).catch(() => fallbackDebuffs)
-                ]);
-                mapsPool = (Array.isArray(mapsRes) && mapsRes.length > 0) ? mapsRes : fallbackMaps;
-                debuffsPool = (Array.isArray(debuffRes) && debuffsRes.length > 0) ? debuffsRes : fallbackDebuffs;
-
-                if (currentMode === '2v2') {
-                    specialDebuffPool = await fetch('debuff2s.json').then(r => r.ok ? r.json() : []).catch(() => []);
-                } else {
-                    specialDebuffPool = [];
-                }
-            } catch (err) {
-                mapsPool = fallbackMaps;
-                debuffsPool = fallbackDebuffs;
-                specialDebuffPool = [];
-            }
-            resetDraw();
-        }
-
-        // ---------- 重置 ----------
-        function resetDraw() {
-            if (isSpinning) return;
-            reelMap.style.transition = 'none';
-            reelMap.style.transform = 'translateY(0px)';
-            reelMap.innerHTML = '<div class="slot-item">等待抽取比赛地图...</div>';
-
-            defaultNames[currentMode].forEach((_, i) => {
-                const reel = document.getElementById(`reel-p${i}`);
-                if (reel) {
-                    reel.style.transition = 'none';
-                    reel.style.transform = 'translateY(0px)';
-                    reel.innerHTML = '<div class="slot-item">等待抽取 debuff...</div>';
-                }
-            });
-            faqContent.innerHTML = '<p style="color: var(--text-muted); font-style: italic;">暂无抽取的 Debuff 规则说明。</p>';
-            spinBtn.disabled = false;
-            hellIndicator.classList.remove('active');
-        }
-
-        // ---------- 工具 ----------
-        function getRandomItem(pool) {
-            if (!pool || pool.length === 0) return null;
-            return pool[Math.floor(Math.random() * pool.length)];
-        }
-
-        function updatePlayerHistory(playerKey, debuffId) {
-            if (!debuffId) return;
-            playerHistory[playerKey].push(String(debuffId));
-            if (playerHistory[playerKey].length > 3) {
-                playerHistory[playerKey].shift();
-            }
-        }
-
-        function updateMapHistory(mapId) {
-            if (!mapId) return;
-            mapHistory.push(String(mapId));
-            if (mapHistory.length > 20) {
-                mapHistory.shift();
-            }
-        }
-
-        function getFilteredPoolForPlayer(playerIndex, basePool = debuffsPool) {
-            const sel = document.getElementById(`player${playerIndex}Weight`);
-            const weightVal = sel ? sel.value : 'all';
-            if (weightVal === 'all') return basePool;
-            // 地狱难度特殊处理 —— 在外部单独处理，这里返回空数组，由调用方识别
-            if (weightVal === 'hell') return null; // 标记为地狱模式
-            const filtered = basePool.filter(item => String(item.weight) === String(weightVal));
-            return filtered.length > 0 ? filtered : basePool;
-        }
-
-        // ---------- 动画 ----------
-        function animateReel(reel, allNames, targetName, callback) {
-            const spinSequence = [];
-            const totalItemsInSpin = 25;
-            const safeNames = allNames.length > 0 ? allNames : [targetName];
-
-            for (let i = 0; i < totalItemsInSpin - 1; i++) {
-                spinSequence.push(safeNames[Math.floor(Math.random() * safeNames.length)]);
-            }
-            spinSequence.push(targetName);
-
-            reel.style.transition = 'none';
-            reel.style.transform = 'translateY(0px)';
-            reel.innerHTML = spinSequence.map(name => `<div class="slot-item">${name}</div>`).join('');
-
-            reel.offsetHeight;
-
-            const targetY = -((spinSequence.length - 1) * ITEM_HEIGHT);
-            reel.style.transition = 'transform 3s cubic-bezier(0.15, 0.85, 0.35, 1.0)';
-            reel.style.transform = `translateY(${targetY}px)`;
-
-            setTimeout(callback, 3100);
-        }
-
-        // ---------- 核心抽取 ----------
-        function spinAll() {
-            if (isSpinning) return;
-
-            isSpinning = true;
-            spinBtn.disabled = true;
-            hellIndicator.classList.remove('active');
-
-            const wonDebuffs = new Array(defaultNames[currentMode].length);
-            let chosenIds = [];
-            let triggerSpecial = false;
-            let isHellMode = false;
-
-            // ===== 1v0 单人模式 =====
-            if (currentMode === '1v0') {
-                const sel = document.getElementById('player0Weight');
-                const weightVal = sel ? sel.value : 'all';
-
-                if (weightVal === 'hell') {
-                    // ---------- 地狱难度精准联动逻辑 ----------
-                    isHellMode = true;
-                    hellIndicator.classList.add('active');
-
-                    // 1. 完全抽取所有具有 "hell" 字段的顶级源头 Debuff
-                    const rootHellPool = debuffsPool.filter(d => Array.isArray(d.hell) && d.hell.length > 0);
-                    let chosenDebuff = null;
-
-                    if (rootHellPool.length > 0) {
-                        // 历史去重过滤
-                        const filteredRoot = rootHellPool.filter(d => !playerHistory.p0.includes(String(d.id)));
-                        chosenDebuff = getRandomItem(filteredRoot) || getRandomItem(rootHellPool);
-                    } else {
-                        chosenDebuff = getRandomItem(debuffsPool) || fallbackDebuffs[0];
-                    }
-                    wonDebuffs[0] = chosenDebuff;
-                    updatePlayerHistory('p0', chosenDebuff.id);
-
-                    // 2. 从当前抽中 Debuff 对应的专属 hell 列表中抽取地图
-                    let chosenMap = null;
-                    if (chosenDebuff && Array.isArray(chosenDebuff.hell) && chosenDebuff.hell.length > 0) {
-                        const mapIdsInHell = chosenDebuff.hell.map(String);
-                        
-                        // 筛选出在联动列表里，且没被历史过滤掉的图
-                        let validHellMaps = mapsPool.filter(m => mapIdsInHell.includes(String(m.id)) && !mapHistory.includes(String(m.id)));
-                        
-                        // 防重复查重兜底：若全在历史里，解除过滤以确保一定是专属地狱图联动
-                        if (validHellMaps.length === 0) {
-                            validHellMaps = mapsPool.filter(m => mapIdsInHell.includes(String(m.id)));
-                        }
-
-                        if (validHellMaps.length > 0) {
-                            chosenMap = getRandomItem(validHellMaps);
-                        }
-                    }
-
-                    // 3. 终极兜底策略：如果抽到的 Debuff 专属图池不存在或异常，则从所有地狱关联图池里抽，决不混入普通图
-                    if (!chosenMap) {
-                        const globalHellIds = buildGlobalHellList(debuffsPool);
-                        const fallbackHellMaps = mapsPool.filter(m => globalHellIds.includes(String(m.id)) && !mapHistory.includes(String(m.id)));
-                        chosenMap = getRandomItem(fallbackHellMaps) || getRandomItem(mapsPool) || fallbackMaps[0];
-                    }
-                    updateMapHistory(chosenMap.id);
-
-                    // 4. 执行动画渲染与调度
-                    const mapNames = mapsPool.map(m => m.name);
-                    animateReel(reelMap, mapNames, chosenMap.name, () => {
-                        isSpinning = false;
-                        spinBtn.disabled = false;
-                        renderFAQ(wonDebuffs);
-                    });
-
-                    const reel = document.getElementById('reel-p0');
-                    if (reel) {
-                        const debuffNames = debuffsPool.map(d => d.name);
-                        animateReel(reel, debuffNames, wonDebuffs[0] ? wonDebuffs[0].name : "无", () => {
-                            // 已由地图动画回调处理结束
-                        });
-                    } else {
-                        isSpinning = false;
-                        spinBtn.disabled = false;
-                        renderFAQ(wonDebuffs);
-                    }
-                    return;
-                }
-
-                // ---------- 非地狱：普通抽取 ----------
-                const p0PoolBase = getFilteredPoolForPlayer(0);
-                const p0Eligible = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
-                const p0 = getRandomItem(p0Eligible) || getRandomItem(p0PoolBase) || fallbackDebuffs[0];
-                wonDebuffs[0] = p0;
-                updatePlayerHistory('p0', wonDebuffs[0].id);
-
-                // 地图抽取（非地狱）
-                const requiredMinPlayers = Math.max(...wonDebuffs.map(d => d ? (Number(d.req_num) || 0) : 0));
-                const baseMapsPool = mapsPool.filter(map => (Number(map.num) || 0) >= requiredMinPlayers);
-                const filteredMapsPool = baseMapsPool.filter(map => !mapHistory.includes(String(map.id)));
-                const wonMap = getRandomItem(filteredMapsPool) || getRandomItem(baseMapsPool) || getRandomItem(mapsPool) ||
-                    fallbackMaps[0];
-                updateMapHistory(wonMap.id);
-
-                let finishedCount = 0;
-                const totalAnimations = 2;
-
-                const checkAllFinished = () => {
-                    finishedCount++;
-                    if (finishedCount === totalAnimations) {
-                        isSpinning = false;
-                        spinBtn.disabled = false;
-                        renderFAQ(wonDebuffs);
-                    }
-                };
-
-                const mapNames = mapsPool.map(m => m.name);
-                animateReel(reelMap, mapNames, wonMap.name, checkAllFinished);
-                const reel = document.getElementById('reel-p0');
-                if (reel) {
-                    const debuffNames = debuffsPool.map(d => d.name);
-                    animateReel(reel, debuffNames, wonDebuffs[0] ? wonDebuffs[0].name : "无", checkAllFinished);
-                } else {
-                    checkAllFinished();
-                }
-                return;
-            }
-
-            // ===== 1v1 模式 =====
-            if (currentMode === '1v1') {
-                const p0PoolBase = getFilteredPoolForPlayer(0);
-                const p0Eligible = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
-                const p0 = getRandomItem(p0Eligible) || getRandomItem(p0PoolBase) || fallbackDebuffs[0];
-                wonDebuffs[0] = p0;
-                chosenIds.push(String(p0.id));
-
-                const p0Bans = (p0 && Array.isArray(p0.ban)) ? p0.ban.map(String) : [];
-                const p1PoolBase = getFilteredPoolForPlayer(1);
-                let p1Eligible = p1PoolBase.filter(item => {
-                    return !playerHistory.p1.includes(String(item.id)) &&
-                        !p0Bans.includes(String(item.id)) &&
-                        !chosenIds.includes(String(item.id));
-                });
-                if (p1Eligible.length === 0) {
-                    p1Eligible = p1PoolBase.filter(item => !p0Bans.includes(String(item.id)) && !chosenIds.includes(String(
-                    item.id)));
-                }
-                const p1 = getRandomItem(p1Eligible) || getRandomItem(p1PoolBase.filter(item => !chosenIds.includes(String(
-                    item.id)))) || getRandomItem(p1PoolBase) || fallbackDebuffs[1];
-                wonDebuffs[1] = p1;
-
-                updatePlayerHistory('p0', wonDebuffs[0].id);
-                updatePlayerHistory('p1', wonDebuffs[1].id);
-                specialCooldownCounter++;
-
-                // 地图
-                const requiredMinPlayers = Math.max(...wonDebuffs.map(d => d ? (Number(d.req_num) || 0) : 0));
-                const baseMapsPool = mapsPool.filter(map => (Number(map.num) || 0) >= requiredMinPlayers);
-                const filteredMapsPool = baseMapsPool.filter(map => !mapHistory.includes(String(map.id)));
-                const wonMap = getRandomItem(filteredMapsPool) || getRandomItem(baseMapsPool) || getRandomItem(mapsPool) ||
-                    fallbackMaps[0];
-                updateMapHistory(wonMap.id);
-
-                let finishedCount = 0;
-                const totalAnimations = 3;
-
-                const checkAllFinished = () => {
-                    finishedCount++;
-                    if (finishedCount === totalAnimations) {
-                        isSpinning = false;
-                        spinBtn.disabled = false;
-                        renderFAQ(wonDebuffs);
-                    }
-                };
-
-                const mapNames = mapsPool.map(m => m.name);
-                animateReel(reelMap, mapNames, wonMap.name, checkAllFinished);
-                for (let i = 0; i < 2; i++) {
-                    const reel = document.getElementById(`reel-p${i}`);
-                    if (reel) {
-                        const debuffNames = debuffsPool.map(d => d.name);
-                        animateReel(reel, debuffNames, wonDebuffs[i] ? wonDebuffs[i].name : "无", checkAllFinished);
-                    } else {
-                        checkAllFinished();
-                    }
-                }
-                return;
-            }
-
-            // ===== 2v2 模式 =====
-            if (currentMode === '2v2') {
-                const allP0All = document.getElementById('player0Weight').value === 'all';
-                const allP1All = document.getElementById('player1Weight').value === 'all';
-                const allP2All = document.getElementById('player2Weight').value === 'all';
-                const allP3All = document.getElementById('player3Weight').value === 'all';
-                const allAreAll = allP0All && allP1All && allP2All && allP3All;
-
-                if (allAreAll && specialDebuffPool.length > 0 && Math.random() < 0.1 && specialCooldownCounter >= 3) {
-                    triggerSpecial = true;
-                }
-
-                if (triggerSpecial) {
-                    const specialItem = specialDebuffPool[0];
-                    const t1SpecialPick = Math.floor(Math.random() * 2);
-                    if (t1SpecialPick === 0) {
-                        wonDebuffs[0] = specialItem;
-                        const p1PoolBase = getFilteredPoolForPlayer(1);
-                        const p1Eligible = p1PoolBase.filter(item => !playerHistory.p1.includes(String(item.id)));
-                        wonDebuffs[1] = getRandomItem(p1Eligible) || getRandomItem(p1PoolBase) || fallbackDebuffs[1];
-                        chosenIds.push(String(wonDebuffs[1].id));
-                    } else {
-                        wonDebuffs[1] = specialItem;
-                        const p0PoolBase = getFilteredPoolForPlayer(0);
-                        const p0Eligible = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
-                        wonDebuffs[0] = getRandomItem(p0Eligible) || getRandomItem(p0PoolBase) || fallbackDebuffs[0];
-                        chosenIds.push(String(wonDebuffs[0].id));
-                    }
-
-                    const t2SpecialPick = Math.floor(Math.random() * 2);
-                    if (t2SpecialPick === 0) {
-                        wonDebuffs[2] = specialItem;
-                        const p3PoolBase = getFilteredPoolForPlayer(3);
-                        const p3Eligible = p3PoolBase.filter(item => !playerHistory.p3.includes(String(item.id)) && !chosenIds
-                            .includes(String(item.id)));
-                        wonDebuffs[3] = getRandomItem(p3Eligible) || getRandomItem(p3PoolBase.filter(item => !chosenIds
-                            .includes(String(item.id)))) || fallbackDebuffs[3];
-                        chosenIds.push(String(wonDebuffs[3].id));
-                    } else {
-                        wonDebuffs[3] = specialItem;
-                        const p2PoolBase = getFilteredPoolForPlayer(2);
-                        const p2Eligible = p2PoolBase.filter(item => !playerHistory.p2.includes(String(item.id)) && !chosenIds
-                            .includes(String(item.id)));
-                        wonDebuffs[2] = getRandomItem(p2Eligible) || getRandomItem(p2PoolBase.filter(item => !chosenIds
-                            .includes(String(item.id)))) || fallbackDebuffs[2];
-                        chosenIds.push(String(wonDebuffs[2].id));
-                    }
-                } else {
-                    const p0PoolBase = getFilteredPoolForPlayer(0);
-                    const p0Pool = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
-                    wonDebuffs[0] = getRandomItem(p0Pool) || getRandomItem(p0PoolBase) || fallbackDebuffs[0];
-                    chosenIds.push(String(wonDebuffs[0].id));
-
-                    const p0Bans = (wonDebuffs[0] && Array.isArray(wonDebuffs[0].ban)) ? wonDebuffs[0].ban.map(String) : [];
-                    const p2PoolBase = getFilteredPoolForPlayer(2);
-                    const p2Eligible = p2PoolBase.filter(item =>
-                        !playerHistory.p2.includes(String(item.id)) &&
-                        !p0Bans.includes(String(item.id)) &&
-                        !chosenIds.includes(String(item.id))
-                    );
-                    wonDebuffs[2] = getRandomItem(p2Eligible) || getRandomItem(p2PoolBase.filter(item => !chosenIds.includes(
-                        String(item.id)))) || getRandomItem(p2PoolBase) || fallbackDebuffs[2];
-                    chosenIds.push(String(wonDebuffs[2].id));
-
-                    const p1PoolBase = getFilteredPoolForPlayer(1);
-                    const p1Pool = p1PoolBase.filter(item => !chosenIds.includes(String(item.id)) && !playerHistory.p1
-                        .includes(String(item.id)));
-                    wonDebuffs[1] = getRandomItem(p1Pool) || getRandomItem(p1PoolBase.filter(item => !chosenIds.includes(
-                        String(item.id)))) || getRandomItem(p1PoolBase) || fallbackDebuffs[1];
-                    chosenIds.push(String(wonDebuffs[1].id));
-
-                    const p1Bans = (wonDebuffs[1] && Array.isArray(wonDebuffs[1].ban)) ? wonDebuffs[1].ban.map(String) : [];
-                    const p3PoolBase = getFilteredPoolForPlayer(3);
-                    const p3Eligible = p3PoolBase.filter(item =>
-                        !playerHistory.p3.includes(String(item.id)) &&
-                        !p1Bans.includes(String(item.id)) &&
-                        !chosenIds.includes(String(item.id))
-                    );
-                    wonDebuffs[3] = getRandomItem(p3Eligible) || getRandomItem(p3PoolBase.filter(item => !chosenIds.includes(
-                        String(item.id)))) || getRandomItem(p3PoolBase) || fallbackDebuffs[3];
-                    chosenIds.push(String(wonDebuffs[3].id));
-
-                    const p0Grouped = wonDebuffs[0].grouped === true || wonDebuffs[0].grouped === "true";
-                    const p1Grouped = wonDebuffs[1].grouped === true || wonDebuffs[1].grouped === "true";
-                    if (p0Grouped) { wonDebuffs[1] = wonDebuffs[0]; } else if (p1Grouped) { wonDebuffs[0] = wonDebuffs[1]; }
-
-                    const p2Grouped = wonDebuffs[2].grouped === true || wonDebuffs[2].grouped === "true";
-                    const p3Grouped = wonDebuffs[3].grouped === true || wonDebuffs[3].grouped === "true";
-                    if (p2Grouped) { wonDebuffs[3] = wonDebuffs[2]; } else if (p3Grouped) { wonDebuffs[2] = wonDebuffs[3]; }
-                }
-
-                updatePlayerHistory('p0', wonDebuffs[0].id);
-                updatePlayerHistory('p1', wonDebuffs[1].id);
-                updatePlayerHistory('p2', wonDebuffs[2].id);
-                updatePlayerHistory('p3', wonDebuffs[3].id);
-
-                if (triggerSpecial) {
-                    specialCooldownCounter = 0;
-                } else {
-                    specialCooldownCounter++;
-                }
-
-                const requiredMinPlayers = Math.max(...wonDebuffs.map(d => d ? (Number(d.req_num) || 0) : 0));
-                const baseMapsPool = mapsPool.filter(map => (Number(map.num) || 0) >= requiredMinPlayers);
-                const filteredMapsPool = baseMapsPool.filter(map => !mapHistory.includes(String(map.id)));
-                const wonMap = getRandomItem(filteredMapsPool) || getRandomItem(baseMapsPool) || getRandomItem(mapsPool) ||
-                    fallbackMaps[0];
-                updateMapHistory(wonMap.id);
-
-                let finishedCount = 0;
-                const totalAnimations = 1 + wonDebuffs.length;
-
-                const checkAllFinished = () => {
-                    finishedCount++;
-                    if (finishedCount === totalAnimations) {
-                        isSpinning = false;
-                        spinBtn.disabled = false;
-                        renderFAQ(wonDebuffs);
-                    }
-                };
-
-                const mapNames = mapsPool.map(m => m.name);
-                animateReel(reelMap, mapNames, wonMap.name, checkAllFinished);
-                for (let i = 0; i < wonDebuffs.length; i++) {
-                    const reel = document.getElementById(`reel-p${i}`);
-                    if (reel) {
-                        const debuffNames = debuffsPool.map(d => d.name);
-                        animateReel(reel, debuffNames, wonDebuffs[i] ? wonDebuffs[i].name : "无", checkAllFinished);
-                    } else {
-                        checkAllFinished();
-                    }
-                }
-                return;
-            }
-        }
-
-        // ---------- 渲染 FAQ ----------
-        function renderFAQ(wonDebuffs) {
-            let html = '';
-            wonDebuffs.forEach((debuff, i) => {
-                if (!debuff) return;
-                const playerInput = document.getElementById(`player${i}Name`);
-                const playerName = playerInput ? playerInput.value.trim() : `选手 ${i+1}`;
-                const isHell = document.getElementById('player0Weight') && document.getElementById('player0Weight')
-                .value === 'hell' && currentMode === '1v0';
-                html += `
-                    <div class="faq-box" style="${isHell ? 'border-color:#dc2626;background:rgba(220,38,38,0.05);' : ''}">
-                        <h3>${playerName} 的规则补充 ${isHell ? '🔥' : ''}</h3>
-                        <p><strong>${debuff.name}</strong></p>
-                        <p style="margin-top:0.4rem; font-size:0.9rem; color:var(--text-muted);">${debuff.FAQ || '暂无详细说明'}</p>
-                    </div>
-                `;
-            });
-            faqContent.innerHTML = html;
-        }
-
-        // ==================== 图鉴功能 ====================
-        const wikiModal = document.getElementById('wikiModal');
-        const wikiModalBody = document.getElementById('wikiModalBody');
-        let currentWikiTab = 'debuff';
-
-        function getWeightBadge(item, isSpecial = false) {
-            if (isSpecial || item.isSpecial || String(item.weight).toLowerCase() === 'special') {
-                return '<span class="badge-weight weight-special">特殊</span>';
-            }
-            const w = String(item.weight);
-            if (w === '1') return '<span class="badge-weight weight-1">简单</span>';
-            if (w === '2') return '<span class="badge-weight weight-2">中等</span>';
-            if (w === '3') return '<span class="badge-weight weight-3">困难</span>';
-            return `<span class="badge-weight weight-special">特殊</span>`;
-        }
-
-        function openWiki(tab = 'debuff') {
-            wikiModal.classList.add('active');
-            switchWikiTab(tab);
-        }
-
-        function closeWiki() {
-            wikiModal.classList.remove('active');
-        }
-
-        function switchWikiTab(tab) {
-            currentWikiTab = tab;
-            document.getElementById('modal-tab-debuff').classList.toggle('active', tab === 'debuff');
-            document.getElementById('modal-tab-map').classList.toggle('active', tab === 'map');
-
-            if (tab === 'debuff') {
-                renderDebuffWiki();
-            } else {
-                renderMapWiki();
-            }
-        }
-
-        function renderDebuffWiki() {
-            const combinedDebuffs = debuffsPool.map(d => ({ ...d, isSpecial: false }));
-
-            if (specialDebuffPool && specialDebuffPool.length > 0) {
-                specialDebuffPool.forEach(sp => {
-                    if (!combinedDebuffs.some(d => d.id === sp.id && d.name === sp.name)) {
-                        combinedDebuffs.push({ ...sp, isSpecial: true });
-                    }
-                });
-            }
-
-            // 计算每个 debuff 是否在 hell 列表中
-            const hellIdSet = buildGlobalHellList(debuffsPool);
-
-            let html = `
-                <table class="wiki-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 60px;">ID</th>
-                            <th style="width: 250px;">名称</th>
-                            <th style="width: 80px;">难度</th>
-                            ${currentMode === '2v2' ? '<th style="width: 90px;">团体效果</th>' : ''}
-                            <th style="width: 150px;">互斥 (Ban)</th>
-                            <th>规则答疑 (FAQ)</th>
-                            <th style="width: 70px;">地狱</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-
-            combinedDebuffs.forEach(item => {
-                let banNames = [];
-                if (Array.isArray(item.ban) && item.ban.length > 0) {
-                    banNames = item.ban.map(bId => {
-                        const found = combinedDebuffs.find(d => String(d.id) === String(bId));
-                        return found ? `<span class="ban-item">${found.name}</span>` :
-                            `<span class="ban-item">ID:${bId}</span>`;
-                    });
-                }
-                const banStr = banNames.length > 0 ? banNames.join('') : '<span style="color:var(--text-muted);">-</span>';
-
-                const isGrouped = (item.grouped === true || item.grouped === 'true') ?
-                    '<span class="badge-grouped">是</span>' :
-                    '<span style="color:var(--text-muted);">否</span>';
-                const displayId = item.isSpecial ? '##' : `#${item.id}`;
-
-                const inHell = hellIdSet.includes(String(item.id));
-                const hellBadge = inHell ? '<span class="badge-weight weight-hell">🔥</span>' :
-                    '<span style="color:var(--text-muted);">-</span>';
-
-                html += `
-                    <tr>
-                        <td>${displayId}</td>
-                        <td><strong>${item.name}</strong></td>
-                        <td>${getWeightBadge(item, item.isSpecial)}</td>
-                        ${currentMode === '2v2' ? `<td>${isGrouped}</td>` : ''}
-                        <td>${banStr}</td>
-                        <td style="white-space: pre-line; color: var(--text-muted);">${item.FAQ || '-'}</td>
-                        <td>${hellBadge}</td>
-                    </tr>
-                `;
-            });
-
-            html += `</tbody></table>`;
-            wikiModalBody.innerHTML = html;
-        }
-
-        function renderMapWiki() {
-            let html = `
-                <table class="wiki-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 80px;">ID</th>
-                            <th>地图名称</th>
-                            <th style="width: 120px;">适用的最大人数</th>
-                            <th style="width: 70px;">地狱</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-
-            const hellIdSet = buildGlobalHellList(debuffsPool);
-
-            mapsPool.forEach(map => {
-                const inHell = hellIdSet.includes(String(map.id));
-                const hellBadge = inHell ? '<span class="badge-weight weight-hell">🔥</span>' :
-                    '<span style="color:var(--text-muted);">-</span>';
-                html += `
-                    <tr>
-                        <td>#${map.id}</td>
-                        <td><strong>${map.name}</strong></td>
-                        <td><span class="badge-weight weight-1">${map.num} 人</span></td>
-                        <td>${hellBadge}</td>
-                    </tr>
-                `;
-            });
-
-            html += `</tbody></table>`;
-            wikiModalBody.innerHTML = html;
-        }
-
-        wikiModal.addEventListener('click', (e) => {
-            if (e.target === wikiModal) closeWiki();
+      });
+    }
+
+    let html = `
+      <table class="wiki-table">
+        <thead>
+          <tr>
+            <th style="width: 60px;">ID</th>
+            <th style="width: 250px;">名称</th>
+            <th style="width: 80px;">难度</th>
+            ${currentMode === '2v2' ? '<th style="width: 90px;">团体效果</th>' : ''}
+            <th style="width: 150px;">互斥 (Ban)</th>
+            <th>规则答疑 (FAQ)</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    combinedDebuffs.forEach(item => {
+      let banNames = [];
+      if (Array.isArray(item.ban) && item.ban.length > 0) {
+        banNames = item.ban.map(bId => {
+          const found = combinedDebuffs.find(d => String(d.id) === String(bId));
+          return found ? `<span class="ban-item">${found.name}</span>` : `<span class="ban-item">ID:${bId}</span>`;
         });
+      }
+      const banStr = banNames.length > 0 ? banNames.join('') : '<span style="color:var(--text-muted);">-</span>';
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && wikiModal.classList.contains('active')) {
-                closeWiki();
-            }
-        });
+      const isGrouped = (item.grouped === true || item.grouped === 'true') ? '<span class="badge-grouped">是</span>' : '<span style="color:var(--text-muted);">否</span>';
+      const displayId = item.isSpecial ? '##' : `#${item.id}`;
 
-        spinBtn.addEventListener('click', spinAll);
-        resetBtn.addEventListener('click', resetDraw);
+      html += `
+        <tr>
+          <td>${displayId}</td>
+          <td><strong>${item.name}</strong></td>
+          <td>${getWeightBadge(item, item.isSpecial)}</td>
+          ${currentMode === '2v2' ? `<td>${isGrouped}</td>` : ''}
+          <td>${banStr}</td>
+          <td style="white-space: pre-line; color: var(--text-muted);">${item.FAQ || '-'}</td>
+        </tr>
+      `;
+    });
 
-        // 初始化
-        renderPlayerSlots();
-        loadData();
-    </script>
+    html += `</tbody></table>`;
+    wikiModalBody.innerHTML = html;
+  }
+
+  function renderMapWiki() {
+    let html = `
+      <table class="wiki-table">
+        <thead>
+          <tr>
+            <th style="width: 80px;">ID</th>
+            <th>地图名称</th>
+            <th style="width: 120px;">适用的最大人数</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    mapsPool.forEach(map => {
+      html += `
+        <tr>
+          <td>#${map.id}</td>
+          <td><strong>${map.name}</strong></td>
+          <td><span class="badge-weight weight-1">${map.num} 人</span></td>
+        </tr>
+      `;
+    });
+
+    html += `</tbody></table>`;
+    wikiModalBody.innerHTML = html;
+  }
+
+  wikiModal.addEventListener('click', (e) => {
+    if (e.target === wikiModal) closeWiki();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && wikiModal.classList.contains('active')) {
+      closeWiki();
+    }
+  });
+
+  spinBtn.addEventListener('click', spinAll);
+  resetBtn.addEventListener('click', resetDraw);
+
+  // 初始化
+  renderPlayerSlots();
+  loadData();
+</script>
 </body>
 </html>
