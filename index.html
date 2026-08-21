@@ -167,7 +167,9 @@
     p3: []
   };
   let mapHistory = [];
-  let specialCooldownCounter = 3; 
+  let specialCooldownCounter = 3;
+  let hellPairs = [];
+  let hellPairCounter = 0;
 
   const spinBtn = document.getElementById('spinBtn');
   const resetBtn = document.getElementById('resetBtn');
@@ -248,12 +250,14 @@
     const debuffFile = (currentMode === '1v0' || currentMode === '1v1') ? 'debuff.json' : 'debuff2.json';
 
     try {
-      const [mapsRes, debuffsRes] = await Promise.all([
+      const [mapsRes, debuffsRes, hellRes] = await Promise.all([
         fetch(mapFile).then(r => r.ok ? r.json() : fallbackMaps).catch(() => fallbackMaps),
-        fetch(debuffFile).then(r => r.ok ? r.json() : fallbackDebuffs).catch(() => fallbackDebuffs)
+        fetch(debuffFile).then(r => r.ok ? r.json() : fallbackDebuffs).catch(() => fallbackDebuffs),
+        fetch('hell.json').then(r => r.ok ? r.json() : []).catch(() => [])
       ]);
       mapsPool = (Array.isArray(mapsRes) && mapsRes.length > 0) ? mapsRes : fallbackMaps;
       debuffsPool = (Array.isArray(debuffsRes) && debuffsRes.length > 0) ? debuffsRes : fallbackDebuffs;
+      hellPairs = (Array.isArray(hellRes) && hellRes.length > 0) ? hellRes : [];
 
       if (currentMode === '2v2') {
         specialDebuffPool = await fetch('debuff2s.json').then(r => r.ok ? r.json() : []).catch(() => []);
@@ -264,6 +268,7 @@
       mapsPool = fallbackMaps;
       debuffsPool = fallbackDebuffs;
       specialDebuffPool = [];
+      hellPairs = [];
     }
     resetDraw();
   }
@@ -549,7 +554,7 @@
    * 1v0 地狱难度模式
    * 逻辑：抽带有有效 "hell" 字段的 debuff，再从该 "hell" 数组中抽取地图编号
    */
-  function draw1v0HellMode() {
+  function draw1v0HellModeLegacy() {
     // 1. 过滤出含有有效 "hell" 数组的 debuff 池
     const hellEligiblePool = debuffsPool.filter(item => {
       return item && Array.isArray(item.hell) && item.hell.length > 0;
@@ -580,7 +585,38 @@
     };
   }
 
+  // 新版地狱模式：使用 hell.json 中的固定配对，顺序循环
+  function draw1v0HellMode() {
+    // 如果 hellPairs 为空或长度为 0，降级为旧版
+    if (!hellPairs || hellPairs.length === 0) {
+      console.warn("hell.json 为空或加载失败，降级为旧版地狱模式");
+      return draw1v0HellModeLegacy();
+    }
+
+    // 取当前索引，并确保不越界
+    const index = hellPairCounter % hellPairs.length;
+    const pair = hellPairs[index];
   
+    // 推进计数器（取模，以便循环）
+    hellPairCounter = (hellPairCounter + 1) % hellPairs.length;
+
+    const debuffId = pair[0];
+    const mapId = pair[1];
+
+    // 校验 ID 是否在对应池中存在
+    const debuffExists = debuffsPool.some(d => d.id === debuffId);
+    const mapExists = mapsPool.some(m => m.id === mapId);
+
+    if (!debuffExists || !mapExists) {
+      console.warn(`Hell 配对 (${debuffId}, ${mapId}) 中存在无效 ID，降级为旧版地狱模式`);
+      return draw1v0HellModeLegacy();
+    }
+
+    return {
+      mapId: mapId,
+      debuffIds: [debuffId]
+    };
+  }
 
   // =================================================================
   // ==================== 3. 页面 spinAll 主调度核心 ===================
