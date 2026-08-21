@@ -540,6 +540,44 @@
     else if (p3Grouped) { wonDebuffs[2] = wonDebuffs[3]; }
   }
 
+
+  /**
+   * 1v0 地狱难度模式
+   * 逻辑：抽带有有效 "hell" 字段的 debuff，再从该 "hell" 数组中抽取地图编号
+   */
+  function draw1v0HellMode() {
+    // 1. 过滤出含有有效 "hell" 数组的 debuff 池
+    const hellEligiblePool = debuffsPool.filter(item => {
+      return item && Array.isArray(item.hell) && item.hell.length > 0;
+    });
+
+    // 2. 如果池子为空，进行安全降级兜底
+    if (hellEligiblePool.length === 0) {
+      console.warn("未在 debuff.json 中找到任何包含有效 'hell' 数组的项，已降级为常规 1v0 全部难度。");
+      return draw1v0AllMode();
+    }
+
+    // 3. 优先过滤掉 P0 历史重复的 debuff
+    let targetPool = hellEligiblePool.filter(item => !playerHistory.p0.includes(String(item.id)));
+    if (targetPool.length === 0) {
+      targetPool = hellEligiblePool; // 如果都重复了，则允许重复
+    }
+
+    // 4. 随机抽取一个地狱 debuff
+    const chosenDebuff = getRandomItem(targetPool);
+
+    // 5. 从该 debuff 的 hell 数组中随机抽取一个数字作为地图编号 (mapId)
+    const chosenMapId = getRandomItem(chosenDebuff.hell);
+
+    // 6. 严格返回 ID 组合数字，确保结构一致性
+    return { 
+      mapId: chosenMapId, 
+      debuffIds: [chosenDebuff.id] 
+    };
+  }
+
+  
+
   // =================================================================
   // ==================== 3. 页面 spinAll 主调度核心 ===================
   // =================================================================
@@ -556,7 +594,10 @@
     // 分流并执行独立的模式逻辑
     if (currentMode === '1v0') {
       const p0Weight = document.getElementById('player0Weight')?.value || 'all';
-      if (p0Weight === 'all') {
+      if (p0Weight === 'hell') {
+        // [新增] 地狱难度分支
+        drawResult = draw1v0HellMode();
+      } else if (p0Weight === 'all') {
         drawResult = draw1v0AllMode();
       } else {
         drawResult = draw1v0RestrictedMode();
