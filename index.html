@@ -82,7 +82,6 @@
     .weight-2 { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
     .weight-3 { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
     .weight-special { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); text-shadow: 0 0 5px rgba(168, 85, 247, 0.4); }
-    .weight-hell { background: rgba(239, 68, 68, 0.4); color: #ff4545; border: 1px solid #ff0000; text-shadow: 0 0 5px rgba(255, 0, 0, 0.6); }
     
     .badge-grouped { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.3); padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.8rem; }
     .ban-item { display: inline-block; background: rgba(255, 255, 255, 0.05); padding: 0.1rem 0.4rem; border-radius: 4px; margin: 0.1rem; font-size: 0.85rem; border: 1px solid var(--border); }
@@ -203,8 +202,6 @@
     const names = defaultNames[currentMode];
     let html = '';
     names.forEach((name, index) => {
-      // 只有 1v0 模式加入地狱难度
-      const hellOption = currentMode === '1v0' ? '<option value="hell">🔥 地狱难度</option>' : '';
       html += `
         <div class="slot-row" style="margin-top: 1rem;">
           <div class="player-header-row">
@@ -217,7 +214,6 @@
                 <option value="1">🟢 简单 </option>
                 <option value="2">🟡 中等 </option>
                 <option value="3">🔴 困难 </option>
-                ${hellOption}
               </select>
             </div>
           </div>
@@ -253,7 +249,7 @@
         fetch(debuffFile).then(r => r.ok ? r.json() : fallbackDebuffs).catch(() => fallbackDebuffs)
       ]);
       mapsPool = (Array.isArray(mapsRes) && mapsRes.length > 0) ? mapsRes : fallbackMaps;
-      debuffsPool = (Array.isArray(debuffRes) && debuffsRes.length > 0) ? debuffsRes : fallbackDebuffs;
+      debuffsPool = (Array.isArray(debuffsRes) && debuffsRes.length > 0) ? debuffsRes : fallbackDebuffs;
 
       if (currentMode === '2v2') {
         specialDebuffPool = await fetch('debuff2s.json').then(r => r.ok ? r.json() : []).catch(() => []);
@@ -311,7 +307,7 @@
   function getFilteredPoolForPlayer(playerIndex, basePool = debuffsPool) {
     const sel = document.getElementById(`player${playerIndex}Weight`);
     const weightVal = sel ? sel.value : 'all';
-    if (weightVal === 'all' || weightVal === 'hell') return basePool;
+    if (weightVal === 'all') return basePool;
     const filtered = basePool.filter(item => String(item.weight) === String(weightVal));
     return filtered.length > 0 ? filtered : basePool; 
   }
@@ -342,62 +338,30 @@
   function spinAll() {
     if (isSpinning) return;
 
-    // 终极安全锁：如果主池有数据，而后备池还在，确保万无一失
-    if (debuffsPool && debuffsPool.length > 0 && debuffsPool[0].name.includes('[后备]')) {
-      // 说明还没加载完或者加载失败，尝试重新抓取
-      loadData();
-    }
-
     isSpinning = true;
     spinBtn.disabled = true;
 
     const wonDebuffs = new Array(defaultNames[currentMode].length);
     let chosenIds = []; 
     let triggerSpecial = false;
-    let wonMap = null;
-
-    // 保底助手：绝对不优先使用后备
-    const 把真实数据当命根子 = (filteredPool, backupPool) => {
-      if (filteredPool && filteredPool.length > 0) return getRandomItem(filteredPool);
-      if (backupPool && backupPool.length > 0) return getRandomItem(backupPool);
-      return getRandomItem(fallbackDebuffs);
-    };
 
     // 单人模式 (1v0)
     if (currentMode === '1v0') {
-      const isHell = document.getElementById('player0Weight')?.value === 'hell';
-
-      if (isHell) {
-        // 地狱难度：过滤出包含 hell 数组且不为空的 debuff 集合
-        const hellPoolBase = debuffsPool.filter(item => Array.isArray(item.hell) && item.hell.length > 0);
-        let hellEligible = hellPoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
-        if (hellEligible.length === 0) hellEligible = hellPoolBase;
-
-        // 优先从地狱池挑，没有就从主池挑，绝不轻易走向后备
-        const p0 = 把真实数据当命根子(hellEligible, debuffsPool);
-        wonDebuffs[0] = p0;
-
-        // 从选中的 debuff 的 hell 数组中随机抽取一个地图 ID 编号
-        if (p0 && Array.isArray(p0.hell) && p0.hell.length > 0) {
-          const targetMapId = getRandomItem(p0.hell);
-          wonMap = mapsPool.find(m => String(m.id) === String(targetMapId));
-        }
-      } else {
-        // 常规单人抽取
-        const p0PoolBase = getFilteredPoolForPlayer(0);
-        const p0Eligible = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
-        wonDebuffs[0] = 把真实数据当命根子(p0Eligible, p0PoolBase);
-      }
+      const p0PoolBase = getFilteredPoolForPlayer(0);
+      const p0Eligible = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
+      const p0 = getRandomItem(p0Eligible) || getRandomItem(p0PoolBase) || fallbackDebuffs[0];
+      wonDebuffs[0] = p0;
       updatePlayerHistory('p0', wonDebuffs[0].id);
 
     } else if (currentMode === '1v1') {
-      // ==================== 1v1 模式 ====================
+      // P0 选池
       const p0PoolBase = getFilteredPoolForPlayer(0);
       const p0Eligible = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
-      const p0 = 把真实数据当命根子(p0Eligible, p0PoolBase);
+      const p0 = getRandomItem(p0Eligible) || getRandomItem(p0PoolBase) || fallbackDebuffs[0];
       wonDebuffs[0] = p0;
       chosenIds.push(String(p0.id));
 
+      // P1 选池：需要避开 P0 的 ban 列表，避开 P0 选到的 ID，且满足 P1 的独立难度与 3 次内不重复
       const p1PoolBase = getFilteredPoolForPlayer(1);
       const p0Bans = (p0 && Array.isArray(p0.ban)) ? p0.ban.map(String) : [];
 
@@ -407,43 +371,47 @@
                !chosenIds.includes(String(item.id));
       });
       
+      // 如果严苛筛选条件无解，退一步取消历史判定，但保留 Ban 判定
       if (p1Eligible.length === 0) {
         p1Eligible = p1PoolBase.filter(item => !p0Bans.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
       }
 
-      wonDebuffs[1] = 把真实数据当命根子(p1Eligible, p1PoolBase.filter(item => !chosenIds.includes(String(item.id))));
-      chosenIds.push(String(wonDebuffs[1].id));
+      const p1 = getRandomItem(p1Eligible) || getRandomItem(p1PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || getRandomItem(p1PoolBase) || fallbackDebuffs[1];
+      wonDebuffs[1] = p1;
 
       updatePlayerHistory('p0', wonDebuffs[0].id);
       updatePlayerHistory('p1', wonDebuffs[1].id);
       specialCooldownCounter++;
 
     } else {
-      // ==================== 2v2 模式 ====================
-      const allP0All = document.getElementById('player0Weight')?.value === 'all';
-      const allP1All = document.getElementById('player1Weight')?.value === 'all';
-      const allP2All = document.getElementById('player2Weight')?.value === 'all';
-      const allP3All = document.getElementById('player3Weight')?.value === 'all';
+      // 2v2 模式
+      const allP0All = document.getElementById('player0Weight').value === 'all';
+      const allP1All = document.getElementById('player1Weight').value === 'all';
+      const allP2All = document.getElementById('player2Weight').value === 'all';
+      const allP3All = document.getElementById('player3Weight').value === 'all';
       const allAreAll = allP0All && allP1All && allP2All && allP3All;
 
+      // 只有在全部选手都选“全部”难度时，才触发特殊组合机制
       if (allAreAll && specialDebuffPool.length > 0 && Math.random() < 0.1 && specialCooldownCounter >= 3) {
         triggerSpecial = true;
       }
 
       if (triggerSpecial) {
         const specialItem = specialDebuffPool[0]; 
+        const specialWeight = String(specialItem.weight || 1); 
+
         const t1SpecialPick = Math.floor(Math.random() * 2); 
         if (t1SpecialPick === 0) {
           wonDebuffs[0] = specialItem;
           const p1PoolBase = getFilteredPoolForPlayer(1);
           const p1Eligible = p1PoolBase.filter(item => !playerHistory.p1.includes(String(item.id)));
-          wonDebuffs[1] = 把真实数据当命根子(p1Eligible, p1PoolBase);
+          wonDebuffs[1] = getRandomItem(p1Eligible) || getRandomItem(p1PoolBase) || fallbackDebuffs[1];
           chosenIds.push(String(wonDebuffs[1].id));
         } else {
           wonDebuffs[1] = specialItem;
           const p0PoolBase = getFilteredPoolForPlayer(0);
           const p0Eligible = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
-          wonDebuffs[0] = 把真实数据当命根子(p0Eligible, p0PoolBase);
+          wonDebuffs[0] = getRandomItem(p0Eligible) || getRandomItem(p0PoolBase) || fallbackDebuffs[0];
           chosenIds.push(String(wonDebuffs[0].id));
         }
 
@@ -452,67 +420,78 @@
           wonDebuffs[2] = specialItem;
           const p3PoolBase = getFilteredPoolForPlayer(3);
           const p3Eligible = p3PoolBase.filter(item => !playerHistory.p3.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
-          wonDebuffs[3] = 把真实数据当命根子(p3Eligible, p3PoolBase);
+          wonDebuffs[3] = getRandomItem(p3Eligible) || getRandomItem(p3PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[3];
           chosenIds.push(String(wonDebuffs[3].id));
         } else {
           wonDebuffs[3] = specialItem;
           const p2PoolBase = getFilteredPoolForPlayer(2);
           const p2Eligible = p2PoolBase.filter(item => !playerHistory.p2.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
-          wonDebuffs[2] = 把真实数据当命根子(p2Eligible, p2PoolBase);
+          wonDebuffs[2] = getRandomItem(p2Eligible) || getRandomItem(p2PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[2];
           chosenIds.push(String(wonDebuffs[2].id));
         }
+
       } else {
-        // 常规 2v2 抽取
+        // 常规 2v2 按各选手独立难度抽取
         const p0PoolBase = getFilteredPoolForPlayer(0);
         const p0Pool = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
-        wonDebuffs[0] = 把真实数据当命根子(p0Pool, p0PoolBase);
+        wonDebuffs[0] = getRandomItem(p0Pool) || getRandomItem(p0PoolBase) || fallbackDebuffs[0];
         chosenIds.push(String(wonDebuffs[0].id));
 
         const p0Bans = (wonDebuffs[0] && Array.isArray(wonDebuffs[0].ban)) ? wonDebuffs[0].ban.map(String) : [];
         const p2PoolBase = getFilteredPoolForPlayer(2);
-        const p2Eligible = p2PoolBase.filter(item => !playerHistory.p2.includes(String(item.id)) && !p0Bans.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
-        wonDebuffs[2] = 把真实数据当命根子(p2Eligible, p2PoolBase);
+        const p2Eligible = p2PoolBase.filter(item => 
+          !playerHistory.p2.includes(String(item.id)) &&
+          !p0Bans.includes(String(item.id)) && 
+          !chosenIds.includes(String(item.id))
+        );
+        wonDebuffs[2] = getRandomItem(p2Eligible) || getRandomItem(p2PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || getRandomItem(p2PoolBase) || fallbackDebuffs[2];
         chosenIds.push(String(wonDebuffs[2].id));
 
         const p1PoolBase = getFilteredPoolForPlayer(1);
         const p1Pool = p1PoolBase.filter(item => !chosenIds.includes(String(item.id)) && !playerHistory.p1.includes(String(item.id)));
-        wonDebuffs[1] = 把真实数据当命根子(p1Pool, p1PoolBase);
+        wonDebuffs[1] = getRandomItem(p1Pool) || getRandomItem(p1PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || getRandomItem(p1PoolBase) || fallbackDebuffs[1];
         chosenIds.push(String(wonDebuffs[1].id));
 
         const p1Bans = (wonDebuffs[1] && Array.isArray(wonDebuffs[1].ban)) ? wonDebuffs[1].ban.map(String) : [];
         const p3PoolBase = getFilteredPoolForPlayer(3);
-        const p3Eligible = p3PoolBase.filter(item => !playerHistory.p3.includes(String(item.id)) && !p1Bans.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
-        wonDebuffs[3] = 把真实数据当命根子(p3Eligible, p3PoolBase);
+        const p3Eligible = p3PoolBase.filter(item => 
+          !playerHistory.p3.includes(String(item.id)) &&
+          !p1Bans.includes(String(item.id)) && 
+          !chosenIds.includes(String(item.id))
+        );
+        wonDebuffs[3] = getRandomItem(p3Eligible) || getRandomItem(p3PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || getRandomItem(p3PoolBase) || fallbackDebuffs[3];
         chosenIds.push(String(wonDebuffs[3].id));
 
-        // 同步组合逻辑
-        if (wonDebuffs[0].grouped === true || wonDebuffs[0].grouped === "true") wonDebuffs[1] = wonDebuffs[0];
-        else if (wonDebuffs[1].grouped === true || wonDebuffs[1].grouped === "true") wonDebuffs[0] = wonDebuffs[1];
+        // 处理组合 (grouped) Debuff 同组同步规则
+        const p0Grouped = wonDebuffs[0].grouped === true || wonDebuffs[0].grouped === "true";
+        const p1Grouped = wonDebuffs[1].grouped === true || wonDebuffs[1].grouped === "true";
+        if (p0Grouped) { wonDebuffs[1] = wonDebuffs[0]; } 
+        else if (p1Grouped) { wonDebuffs[0] = wonDebuffs[1]; }
 
-        if (wonDebuffs[2].grouped === true || wonDebuffs[2].grouped === "true") wonDebuffs[3] = wonDebuffs[2];
-        else if (wonDebuffs[3].grouped === true || wonDebuffs[3].grouped === "true") wonDebuffs[2] = wonDebuffs[3];
+        const p2Grouped = wonDebuffs[2].grouped === true || wonDebuffs[2].grouped === "true";
+        const p3Grouped = wonDebuffs[3].grouped === true || wonDebuffs[3].grouped === "true";
+        if (p2Grouped) { wonDebuffs[3] = wonDebuffs[2]; } 
+        else if (p3Grouped) { wonDebuffs[2] = wonDebuffs[3]; }
       }
 
       updatePlayerHistory('p0', wonDebuffs[0].id);
       updatePlayerHistory('p1', wonDebuffs[1].id);
       updatePlayerHistory('p2', wonDebuffs[2].id);
       updatePlayerHistory('p3', wonDebuffs[3].id);
-      specialCooldownCounter = triggerSpecial ? 0 : specialCooldownCounter + 1;
+
+      if (triggerSpecial) {
+        specialCooldownCounter = 0; 
+      } else {
+        specialCooldownCounter++; 
+      }
     }
 
-    // 地图安全抽取
-    if (!wonMap) {
-      const requiredMinPlayers = Math.max(...wonDebuffs.map(d => d ? (Number(d.req_num) || 0) : 0));
-      const baseMapsPool = mapsPool.filter(map => (Number(map.num) || 0) >= requiredMinPlayers);
-      const filteredMapsPool = baseMapsPool.filter(map => !mapHistory.includes(String(map.id)));
-      
-      if (filteredMapsPool.length > 0) wonMap = getRandomItem(filteredMapsPool);
-      else if (baseMapsPool.length > 0) wonMap = getRandomItem(baseMapsPool);
-      else wonMap = getRandomItem(mapsPool) || fallbackMaps[0];
-    }
+    const requiredMinPlayers = Math.max(...wonDebuffs.map(d => d ? (Number(d.req_num) || 0) : 0));
+    const baseMapsPool = mapsPool.filter(map => (Number(map.num) || 0) >= requiredMinPlayers);
+    const filteredMapsPool = baseMapsPool.filter(map => !mapHistory.includes(String(map.id)));
+    const wonMap = getRandomItem(filteredMapsPool) || getRandomItem(baseMapsPool) || getRandomItem(mapsPool) || fallbackMaps[0];
     updateMapHistory(wonMap.id);
 
-    // 动画渲染触发
     let finishedCount = 0;
     const playerCount = wonDebuffs.length;
     const totalAnimations = 1 + playerCount;
@@ -527,6 +506,7 @@
     };
 
     const animationPool = (triggerSpecial && specialDebuffPool.length > 0) ? [...debuffsPool, ...specialDebuffPool] : debuffsPool;
+    
     animateReel(reelMap, mapsPool.map(m => m.name), wonMap.name, checkAllFinished);
 
     for (let i = 0; i < playerCount; i++) {
@@ -569,7 +549,6 @@
     if (w === '1') return '<span class="badge-weight weight-1">简单</span>';
     if (w === '2') return '<span class="badge-weight weight-2">中等</span>';
     if (w === '3') return '<span class="badge-weight weight-3">困难</span>';
-    if (w === 'hell') return '<span class="badge-weight weight-hell">地狱</span>';
     return `<span class="badge-weight weight-special">特殊</span>`;
   }
 
