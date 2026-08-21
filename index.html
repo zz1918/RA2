@@ -202,6 +202,9 @@
     const names = defaultNames[currentMode];
     let html = '';
     names.forEach((name, index) => {
+      // [新增] 判断：仅在 1v0 模式下的唯一选手展示“地狱难度”选项
+      const showHellOption = (currentMode === '1v0' && index === 0);
+
       html += `
         <div class="slot-row" style="margin-top: 1rem;">
           <div class="player-header-row">
@@ -214,6 +217,7 @@
                 <option value="1">🟢 简单 </option>
                 <option value="2">🟡 中等 </option>
                 <option value="3">🔴 困难 </option>
+                ${showHellOption ? '<option value="hell">🔥 地狱 </option>' : ''}
               </select>
             </div>
           </div>
