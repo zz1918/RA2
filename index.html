@@ -663,7 +663,7 @@
                     fetch(debuffFile).then(r => r.ok ? r.json() : fallbackDebuffs).catch(() => fallbackDebuffs)
                 ]);
                 mapsPool = (Array.isArray(mapsRes) && mapsRes.length > 0) ? mapsRes : fallbackMaps;
-                debuffsPool = (Array.isArray(debuffsRes) && debuffsRes.length > 0) ? debuffsRes : fallbackDebuffs;
+                debuffsPool = (Array.isArray(debuffRes) && debuffsRes.length > 0) ? debuffsRes : fallbackDebuffs;
 
                 if (currentMode === '2v2') {
                     specialDebuffPool = await fetch('debuff2s.json').then(r => r.ok ? r.json() : []).catch(() => []);
@@ -773,50 +773,51 @@
                 const weightVal = sel ? sel.value : 'all';
 
                 if (weightVal === 'hell') {
-                    // ---------- 地狱难度 ----------
+                    // ---------- 地狱难度精准联动逻辑 ----------
                     isHellMode = true;
                     hellIndicator.classList.add('active');
 
-                    // 1. 构建全局 hell 列表
-                    const hellIdSet = buildGlobalHellList(debuffsPool);
-                    if (hellIdSet.length === 0) {
-                        // 没有 hell 列表，退化为全部抽取
-                        const p0 = getRandomItem(debuffsPool) || fallbackDebuffs[0];
-                        wonDebuffs[0] = p0;
-                    } else {
-                        // 从 hell 列表中随机选一个 ID
-                        const randomHellId = hellIdSet[Math.floor(Math.random() * hellIdSet.length)];
-                        // 在 debuff 池中查找对应 ID 的 debuff
-                        let found = debuffsPool.find(d => String(d.id) === randomHellId);
-                        if (!found) {
-                            // 如果找不到，退化为全部抽取
-                            found = getRandomItem(debuffsPool) || fallbackDebuffs[0];
-                        }
-                        wonDebuffs[0] = found;
-                    }
-                    updatePlayerHistory('p0', wonDebuffs[0].id);
+                    // 1. 完全抽取所有具有 "hell" 字段的顶级源头 Debuff
+                    const rootHellPool = debuffsPool.filter(d => Array.isArray(d.hell) && d.hell.length > 0);
+                    let chosenDebuff = null;
 
-                    // ---------- 地狱地图：从 hell 列表中抽取地图 ID ----------
-                    const hellIdSetForMap = buildGlobalHellList(debuffsPool);
+                    if (rootHellPool.length > 0) {
+                        // 历史去重过滤
+                        const filteredRoot = rootHellPool.filter(d => !playerHistory.p0.includes(String(d.id)));
+                        chosenDebuff = getRandomItem(filteredRoot) || getRandomItem(rootHellPool);
+                    } else {
+                        chosenDebuff = getRandomItem(debuffsPool) || fallbackDebuffs[0];
+                    }
+                    wonDebuffs[0] = chosenDebuff;
+                    updatePlayerHistory('p0', chosenDebuff.id);
+
+                    // 2. 从当前抽中 Debuff 对应的专属 hell 列表中抽取地图
                     let chosenMap = null;
-                    if (hellIdSetForMap.length > 0) {
-                        // 尝试从地图池中查找 ID 匹配的地图
-                        const shuffledHellIds = [...hellIdSetForMap].sort(() => Math.random() - 0.5);
-                        for (const hid of shuffledHellIds) {
-                            const match = mapsPool.find(m => String(m.id) === String(hid));
-                            if (match) {
-                                chosenMap = match;
-                                break;
-                            }
+                    if (chosenDebuff && Array.isArray(chosenDebuff.hell) && chosenDebuff.hell.length > 0) {
+                        const mapIdsInHell = chosenDebuff.hell.map(String);
+                        
+                        // 筛选出在联动列表里，且没被历史过滤掉的图
+                        let validHellMaps = mapsPool.filter(m => mapIdsInHell.includes(String(m.id)) && !mapHistory.includes(String(m.id)));
+                        
+                        // 防重复查重兜底：若全在历史里，解除过滤以确保一定是专属地狱图联动
+                        if (validHellMaps.length === 0) {
+                            validHellMaps = mapsPool.filter(m => mapIdsInHell.includes(String(m.id)));
+                        }
+
+                        if (validHellMaps.length > 0) {
+                            chosenMap = getRandomItem(validHellMaps);
                         }
                     }
-                    // 如果没找到匹配的地图，从所有地图中随机抽取
+
+                    // 3. 终极兜底策略：如果抽到的 Debuff 专属图池不存在或异常，则从所有地狱关联图池里抽，决不混入普通图
                     if (!chosenMap) {
-                        const mapPoolFiltered = mapsPool.filter(m => !mapHistory.includes(String(m.id)));
-                        chosenMap = getRandomItem(mapPoolFiltered) || getRandomItem(mapsPool) || fallbackMaps[0];
+                        const globalHellIds = buildGlobalHellList(debuffsPool);
+                        const fallbackHellMaps = mapsPool.filter(m => globalHellIds.includes(String(m.id)) && !mapHistory.includes(String(m.id)));
+                        chosenMap = getRandomItem(fallbackHellMaps) || getRandomItem(mapsPool) || fallbackMaps[0];
                     }
                     updateMapHistory(chosenMap.id);
-                    // 动画展示地图
+
+                    // 4. 执行动画渲染与调度
                     const mapNames = mapsPool.map(m => m.name);
                     animateReel(reelMap, mapNames, chosenMap.name, () => {
                         isSpinning = false;
@@ -824,7 +825,6 @@
                         renderFAQ(wonDebuffs);
                     });
 
-                    // 动画展示 debuff
                     const reel = document.getElementById('reel-p0');
                     if (reel) {
                         const debuffNames = debuffsPool.map(d => d.name);
