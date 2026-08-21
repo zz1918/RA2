@@ -335,163 +335,282 @@
     setTimeout(callback, 3100);
   }
 
+  // =================================================================
+  // ==================== 1. 细分后的独立模式抽取函数 ====================
+  // =================================================================
+
+  /**
+   * 1v0 限定难度：处理单独挑选简单/中等/困难的情况
+   */
+  function draw1v0RestrictedMode() {
+    const p0PoolBase = getFilteredPoolForPlayer(0);
+    const p0Eligible = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
+    const p0 = getRandomItem(p0Eligible) || getRandomItem(p0PoolBase) || fallbackDebuffs[0];
+
+    const reqNum = Number(p0.req_num) || 0;
+    const map = pickMapForRequiredPlayers(reqNum);
+
+    return { mapId: map.id, debuffIds: [p0.id] };
+  }
+
+  /**
+   * 1v0 全部难度：从全池直接抽取
+   */
+  function draw1v0AllMode() {
+    const p0PoolBase = debuffsPool;
+    const p0Eligible = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
+    const p0 = getRandomItem(p0Eligible) || getRandomItem(p0PoolBase) || fallbackDebuffs[0];
+
+    const reqNum = Number(p0.req_num) || 0;
+    const map = pickMapForRequiredPlayers(reqNum);
+
+    return { mapId: map.id, debuffIds: [p0.id] };
+  }
+
+  /**
+   * 1v1 限定难度：处理单独挑选难度，需计算互相 Ban 的逻辑
+   */
+  function draw1v1RestrictedMode() {
+    const p0PoolBase = getFilteredPoolForPlayer(0);
+    const p0Eligible = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
+    const p0 = getRandomItem(p0Eligible) || getRandomItem(p0PoolBase) || fallbackDebuffs[0];
+
+    const p1PoolBase = getFilteredPoolForPlayer(1);
+    const p0Bans = (p0 && Array.isArray(p0.ban)) ? p0.ban.map(String) : [];
+    const chosenIds = [String(p0.id)];
+
+    let p1Eligible = p1PoolBase.filter(item => {
+      return !playerHistory.p1.includes(String(item.id)) &&
+             !p0Bans.includes(String(item.id)) && 
+             !chosenIds.includes(String(item.id));
+    });
+    
+    if (p1Eligible.length === 0) {
+      p1Eligible = p1PoolBase.filter(item => !p0Bans.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
+    }
+    const p1 = getRandomItem(p1Eligible) || getRandomItem(p1PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || getRandomItem(p1PoolBase) || fallbackDebuffs[1];
+
+    const reqNum = Math.max(Number(p0.req_num) || 0, Number(p1.req_num) || 0);
+    const map = pickMapForRequiredPlayers(reqNum);
+
+    return { mapId: map.id, debuffIds: [p0.id, p1.id] };
+  }
+
+  /**
+   * 1v1 全部难度：全池独立抽取，互斥计算
+   */
+  function draw1v1AllMode() {
+    const p0PoolBase = debuffsPool;
+    const p0Eligible = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
+    const p0 = getRandomItem(p0Eligible) || getRandomItem(p0PoolBase) || fallbackDebuffs[0];
+
+    const p1PoolBase = debuffsPool;
+    const p0Bans = (p0 && Array.isArray(p0.ban)) ? p0.ban.map(String) : [];
+    const chosenIds = [String(p0.id)];
+
+    let p1Eligible = p1PoolBase.filter(item => {
+      return !playerHistory.p1.includes(String(item.id)) &&
+             !p0Bans.includes(String(item.id)) && 
+             !chosenIds.includes(String(item.id));
+    });
+    
+    if (p1Eligible.length === 0) {
+      p1Eligible = p1PoolBase.filter(item => !p0Bans.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
+    }
+    const p1 = getRandomItem(p1Eligible) || getRandomItem(p1PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[1];
+
+    const reqNum = Math.max(Number(p0.req_num) || 0, Number(p1.req_num) || 0);
+    const map = pickMapForRequiredPlayers(reqNum);
+
+    return { mapId: map.id, debuffIds: [p0.id, p1.id] };
+  }
+
+  /**
+   * 2v2 限定难度：四个选手中任意一人选了非 "all" 难度时
+   */
+  function draw2v2RestrictedMode() {
+    const wonDebuffs = new Array(4);
+    const chosenIds = [];
+
+    // P0 抽取
+    const p0PoolBase = getFilteredPoolForPlayer(0);
+    const p0Pool = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
+    wonDebuffs[0] = getRandomItem(p0Pool) || getRandomItem(p0PoolBase) || fallbackDebuffs[0];
+    chosenIds.push(String(wonDebuffs[0].id));
+
+    // P2 抽取
+    const p0Bans = (wonDebuffs[0] && Array.isArray(wonDebuffs[0].ban)) ? wonDebuffs[0].ban.map(String) : [];
+    const p2PoolBase = getFilteredPoolForPlayer(2);
+    const p2Eligible = p2PoolBase.filter(item => 
+      !playerHistory.p2.includes(String(item.id)) &&
+      !p0Bans.includes(String(item.id)) && 
+      !chosenIds.includes(String(item.id))
+    );
+    wonDebuffs[2] = getRandomItem(p2Eligible) || getRandomItem(p2PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || getRandomItem(p2PoolBase) || fallbackDebuffs[2];
+    chosenIds.push(String(wonDebuffs[2].id));
+
+    // P1 抽取
+    const p1PoolBase = getFilteredPoolForPlayer(1);
+    const p1Pool = p1PoolBase.filter(item => !chosenIds.includes(String(item.id)) && !playerHistory.p1.includes(String(item.id)));
+    wonDebuffs[1] = getRandomItem(p1Pool) || getRandomItem(p1PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || getRandomItem(p1PoolBase) || fallbackDebuffs[1];
+    chosenIds.push(String(wonDebuffs[1].id));
+
+    // P3 抽取
+    const p1Bans = (wonDebuffs[1] && Array.isArray(wonDebuffs[1].ban)) ? wonDebuffs[1].ban.map(String) : [];
+    const p3PoolBase = getFilteredPoolForPlayer(3);
+    const p3Eligible = p3PoolBase.filter(item => 
+      !playerHistory.p3.includes(String(item.id)) &&
+      !p1Bans.includes(String(item.id)) && 
+      !chosenIds.includes(String(item.id))
+    );
+    wonDebuffs[3] = getRandomItem(p3Eligible) || getRandomItem(p3PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || getRandomItem(p3PoolBase) || fallbackDebuffs[3];
+    chosenIds.push(String(wonDebuffs[3].id));
+
+    // 队伍联动判定
+    syncGroupedDebuffs(wonDebuffs);
+
+    const reqNum = Math.max(...wonDebuffs.map(d => d ? (Number(d.req_num) || 0) : 0));
+    const map = pickMapForRequiredPlayers(reqNum);
+
+    return { mapId: map.id, debuffIds: wonDebuffs.map(d => d.id) };
+  }
+
+  /**
+   * 2v2 全部难度：全员 "all" 时有概率触发 2v2s 的全局老沙彩蛋
+   */
+  function draw2v2AllMode() {
+    const wonDebuffs = new Array(4);
+    const chosenIds = [];
+    let isSpecialTriggered = false;
+
+    if (specialDebuffPool.length > 0 && Math.random() < 0.1 && specialCooldownCounter >= 3) {
+      isSpecialTriggered = true;
+      const specialItem = specialDebuffPool[0];
+
+      if (Math.floor(Math.random() * 2) === 0) {
+        wonDebuffs[0] = specialItem;
+        const p1PoolBase = getFilteredPoolForPlayer(1);
+        wonDebuffs[1] = getRandomItem(p1PoolBase.filter(item => !playerHistory.p1.includes(String(item.id)))) || fallbackDebuffs[1];
+        chosenIds.push(String(wonDebuffs[1].id));
+      } else {
+        wonDebuffs[1] = specialItem;
+        const p0PoolBase = getFilteredPoolForPlayer(0);
+        wonDebuffs[0] = getRandomItem(p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)))) || fallbackDebuffs[0];
+        chosenIds.push(String(wonDebuffs[0].id));
+      }
+
+      if (Math.floor(Math.random() * 2) === 0) {
+        wonDebuffs[2] = specialItem;
+        const p3PoolBase = getFilteredPoolForPlayer(3);
+        wonDebuffs[3] = getRandomItem(p3PoolBase.filter(item => !playerHistory.p3.includes(String(item.id)) && !chosenIds.includes(String(item.id)))) || fallbackDebuffs[3];
+      } else {
+        wonDebuffs[3] = specialItem;
+        const p2PoolBase = getFilteredPoolForPlayer(2);
+        wonDebuffs[2] = getRandomItem(p2PoolBase.filter(item => !playerHistory.p2.includes(String(item.id)) && !chosenIds.includes(String(item.id)))) || fallbackDebuffs[2];
+      }
+    } else {
+      return { ...draw2v2RestrictedMode(), triggerSpecial: false };
+    }
+
+    const reqNum = Math.max(...wonDebuffs.map(d => d ? (Number(d.req_num) || 0) : 0));
+    const map = pickMapForRequiredPlayers(reqNum);
+
+    return { mapId: map.id, debuffIds: wonDebuffs.map(d => d.id), triggerSpecial: true };
+  }
+
+  // =================================================================
+  // ==================== 2. 抽取流程的提取工具函数 =====================
+  // =================================================================
+
+  function pickMapForRequiredPlayers(reqNum) {
+    const baseMapsPool = mapsPool.filter(map => (Number(map.num) || 0) >= reqNum);
+    const filteredMapsPool = baseMapsPool.filter(map => !mapHistory.includes(String(map.id)));
+    return getRandomItem(filteredMapsPool) || getRandomItem(baseMapsPool) || getRandomItem(mapsPool) || fallbackMaps[0];
+  }
+
+  function syncGroupedDebuffs(wonDebuffs) {
+    const p0Grouped = wonDebuffs[0].grouped === true || wonDebuffs[0].grouped === "true";
+    const p1Grouped = wonDebuffs[1].grouped === true || wonDebuffs[1].grouped === "true";
+    if (p0Grouped) { wonDebuffs[1] = wonDebuffs[0]; } 
+    else if (p1Grouped) { wonDebuffs[0] = wonDebuffs[1]; }
+
+    const p2Grouped = wonDebuffs[2].grouped === true || wonDebuffs[2].grouped === "true";
+    const p3Grouped = wonDebuffs[3].grouped === true || wonDebuffs[3].grouped === "true";
+    if (p2Grouped) { wonDebuffs[3] = wonDebuffs[2]; } 
+    else if (p3Grouped) { wonDebuffs[2] = wonDebuffs[3]; }
+  }
+
+  // =================================================================
+  // ==================== 3. 页面 spinAll 主调度核心 ===================
+  // =================================================================
+
   function spinAll() {
     if (isSpinning) return;
 
     isSpinning = true;
     spinBtn.disabled = true;
 
-    const wonDebuffs = new Array(defaultNames[currentMode].length);
-    let chosenIds = []; 
-    let triggerSpecial = false;
+    let drawResult = null;
+    let isSpecial = false;
 
-    // 单人模式 (1v0)
+    // 分流并执行独立的模式逻辑
     if (currentMode === '1v0') {
-      const p0PoolBase = getFilteredPoolForPlayer(0);
-      const p0Eligible = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
-      const p0 = getRandomItem(p0Eligible) || getRandomItem(p0PoolBase) || fallbackDebuffs[0];
-      wonDebuffs[0] = p0;
-      updatePlayerHistory('p0', wonDebuffs[0].id);
-
-    } else if (currentMode === '1v1') {
-      // P0 选池
-      const p0PoolBase = getFilteredPoolForPlayer(0);
-      const p0Eligible = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
-      const p0 = getRandomItem(p0Eligible) || getRandomItem(p0PoolBase) || fallbackDebuffs[0];
-      wonDebuffs[0] = p0;
-      chosenIds.push(String(p0.id));
-
-      // P1 选池：需要避开 P0 的 ban 列表，避开 P0 选到的 ID，且满足 P1 的独立难度与 3 次内不重复
-      const p1PoolBase = getFilteredPoolForPlayer(1);
-      const p0Bans = (p0 && Array.isArray(p0.ban)) ? p0.ban.map(String) : [];
-
-      let p1Eligible = p1PoolBase.filter(item => {
-        return !playerHistory.p1.includes(String(item.id)) &&
-               !p0Bans.includes(String(item.id)) && 
-               !chosenIds.includes(String(item.id));
-      });
+      const p0Weight = document.getElementById('player0Weight')?.value || 'all';
+      if (p0Weight === 'all') {
+        drawResult = draw1v0AllMode();
+      } else {
+        drawResult = draw1v0RestrictedMode();
+      }
+    } 
+    else if (currentMode === '1v1') {
+      const p0Weight = document.getElementById('player0Weight')?.value || 'all';
+      const p1Weight = document.getElementById('player1Weight')?.value || 'all';
+      if (p0Weight === 'all' && p1Weight === 'all') {
+        drawResult = draw1v1AllMode();
+      } else {
+        drawResult = draw1v1RestrictedMode();
+      }
+    } 
+    else if (currentMode === '2v2') {
+      const allP0All = document.getElementById('player0Weight')?.value === 'all';
+      const allP1All = document.getElementById('player1Weight')?.value === 'all';
+      const allP2All = document.getElementById('player2Weight')?.value === 'all';
+      const allP3All = document.getElementById('player3Weight')?.value === 'all';
       
-      // 如果严苛筛选条件无解，退一步取消历史判定，但保留 Ban 判定
-      if (p1Eligible.length === 0) {
-        p1Eligible = p1PoolBase.filter(item => !p0Bans.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
-      }
-
-      const p1 = getRandomItem(p1Eligible) || getRandomItem(p1PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || getRandomItem(p1PoolBase) || fallbackDebuffs[1];
-      wonDebuffs[1] = p1;
-
-      updatePlayerHistory('p0', wonDebuffs[0].id);
-      updatePlayerHistory('p1', wonDebuffs[1].id);
-      specialCooldownCounter++;
-
-    } else {
-      // 2v2 模式
-      const allP0All = document.getElementById('player0Weight').value === 'all';
-      const allP1All = document.getElementById('player1Weight').value === 'all';
-      const allP2All = document.getElementById('player2Weight').value === 'all';
-      const allP3All = document.getElementById('player3Weight').value === 'all';
-      const allAreAll = allP0All && allP1All && allP2All && allP3All;
-
-      // 只有在全部选手都选“全部”难度时，才触发特殊组合机制
-      if (allAreAll && specialDebuffPool.length > 0 && Math.random() < 0.1 && specialCooldownCounter >= 3) {
-        triggerSpecial = true;
-      }
-
-      if (triggerSpecial) {
-        const specialItem = specialDebuffPool[0]; 
-        const specialWeight = String(specialItem.weight || 1); 
-
-        const t1SpecialPick = Math.floor(Math.random() * 2); 
-        if (t1SpecialPick === 0) {
-          wonDebuffs[0] = specialItem;
-          const p1PoolBase = getFilteredPoolForPlayer(1);
-          const p1Eligible = p1PoolBase.filter(item => !playerHistory.p1.includes(String(item.id)));
-          wonDebuffs[1] = getRandomItem(p1Eligible) || getRandomItem(p1PoolBase) || fallbackDebuffs[1];
-          chosenIds.push(String(wonDebuffs[1].id));
-        } else {
-          wonDebuffs[1] = specialItem;
-          const p0PoolBase = getFilteredPoolForPlayer(0);
-          const p0Eligible = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
-          wonDebuffs[0] = getRandomItem(p0Eligible) || getRandomItem(p0PoolBase) || fallbackDebuffs[0];
-          chosenIds.push(String(wonDebuffs[0].id));
-        }
-
-        const t2SpecialPick = Math.floor(Math.random() * 2); 
-        if (t2SpecialPick === 0) {
-          wonDebuffs[2] = specialItem;
-          const p3PoolBase = getFilteredPoolForPlayer(3);
-          const p3Eligible = p3PoolBase.filter(item => !playerHistory.p3.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
-          wonDebuffs[3] = getRandomItem(p3Eligible) || getRandomItem(p3PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[3];
-          chosenIds.push(String(wonDebuffs[3].id));
-        } else {
-          wonDebuffs[3] = specialItem;
-          const p2PoolBase = getFilteredPoolForPlayer(2);
-          const p2Eligible = p2PoolBase.filter(item => !playerHistory.p2.includes(String(item.id)) && !chosenIds.includes(String(item.id)));
-          wonDebuffs[2] = getRandomItem(p2Eligible) || getRandomItem(p2PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || fallbackDebuffs[2];
-          chosenIds.push(String(wonDebuffs[2].id));
-        }
-
+      if (allP0All && allP1All && allP2All && allP3All) {
+        drawResult = draw2v2AllMode();
+        isSpecial = drawResult.triggerSpecial;
       } else {
-        // 常规 2v2 按各选手独立难度抽取
-        const p0PoolBase = getFilteredPoolForPlayer(0);
-        const p0Pool = p0PoolBase.filter(item => !playerHistory.p0.includes(String(item.id)));
-        wonDebuffs[0] = getRandomItem(p0Pool) || getRandomItem(p0PoolBase) || fallbackDebuffs[0];
-        chosenIds.push(String(wonDebuffs[0].id));
-
-        const p0Bans = (wonDebuffs[0] && Array.isArray(wonDebuffs[0].ban)) ? wonDebuffs[0].ban.map(String) : [];
-        const p2PoolBase = getFilteredPoolForPlayer(2);
-        const p2Eligible = p2PoolBase.filter(item => 
-          !playerHistory.p2.includes(String(item.id)) &&
-          !p0Bans.includes(String(item.id)) && 
-          !chosenIds.includes(String(item.id))
-        );
-        wonDebuffs[2] = getRandomItem(p2Eligible) || getRandomItem(p2PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || getRandomItem(p2PoolBase) || fallbackDebuffs[2];
-        chosenIds.push(String(wonDebuffs[2].id));
-
-        const p1PoolBase = getFilteredPoolForPlayer(1);
-        const p1Pool = p1PoolBase.filter(item => !chosenIds.includes(String(item.id)) && !playerHistory.p1.includes(String(item.id)));
-        wonDebuffs[1] = getRandomItem(p1Pool) || getRandomItem(p1PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || getRandomItem(p1PoolBase) || fallbackDebuffs[1];
-        chosenIds.push(String(wonDebuffs[1].id));
-
-        const p1Bans = (wonDebuffs[1] && Array.isArray(wonDebuffs[1].ban)) ? wonDebuffs[1].ban.map(String) : [];
-        const p3PoolBase = getFilteredPoolForPlayer(3);
-        const p3Eligible = p3PoolBase.filter(item => 
-          !playerHistory.p3.includes(String(item.id)) &&
-          !p1Bans.includes(String(item.id)) && 
-          !chosenIds.includes(String(item.id))
-        );
-        wonDebuffs[3] = getRandomItem(p3Eligible) || getRandomItem(p3PoolBase.filter(item => !chosenIds.includes(String(item.id)))) || getRandomItem(p3PoolBase) || fallbackDebuffs[3];
-        chosenIds.push(String(wonDebuffs[3].id));
-
-        // 处理组合 (grouped) Debuff 同组同步规则
-        const p0Grouped = wonDebuffs[0].grouped === true || wonDebuffs[0].grouped === "true";
-        const p1Grouped = wonDebuffs[1].grouped === true || wonDebuffs[1].grouped === "true";
-        if (p0Grouped) { wonDebuffs[1] = wonDebuffs[0]; } 
-        else if (p1Grouped) { wonDebuffs[0] = wonDebuffs[1]; }
-
-        const p2Grouped = wonDebuffs[2].grouped === true || wonDebuffs[2].grouped === "true";
-        const p3Grouped = wonDebuffs[3].grouped === true || wonDebuffs[3].grouped === "true";
-        if (p2Grouped) { wonDebuffs[3] = wonDebuffs[2]; } 
-        else if (p3Grouped) { wonDebuffs[2] = wonDebuffs[3]; }
-      }
-
-      updatePlayerHistory('p0', wonDebuffs[0].id);
-      updatePlayerHistory('p1', wonDebuffs[1].id);
-      updatePlayerHistory('p2', wonDebuffs[2].id);
-      updatePlayerHistory('p3', wonDebuffs[3].id);
-
-      if (triggerSpecial) {
-        specialCooldownCounter = 0; 
-      } else {
-        specialCooldownCounter++; 
+        drawResult = draw2v2RestrictedMode();
       }
     }
 
-    const requiredMinPlayers = Math.max(...wonDebuffs.map(d => d ? (Number(d.req_num) || 0) : 0));
-    const baseMapsPool = mapsPool.filter(map => (Number(map.num) || 0) >= requiredMinPlayers);
-    const filteredMapsPool = baseMapsPool.filter(map => !mapHistory.includes(String(map.id)));
-    const wonMap = getRandomItem(filteredMapsPool) || getRandomItem(baseMapsPool) || getRandomItem(mapsPool) || fallbackMaps[0];
-    updateMapHistory(wonMap.id);
+    if (!drawResult) {
+      isSpinning = false;
+      spinBtn.disabled = false;
+      return;
+    }
 
+    // 将生成的 ID 结果重新对应映射至对象实体
+    const wonMap = mapsPool.find(m => m.id === drawResult.mapId) || fallbackMaps[0];
+    const wonDebuffs = drawResult.debuffIds.map((id, index) => {
+      const pool = (isSpecial && specialDebuffPool.length > 0) ? [...debuffsPool, ...specialDebuffPool] : debuffsPool;
+      return pool.find(d => d.id === id) || fallbackDebuffs[index];
+    });
+
+    // 记录及刷写全局堆栈历史
+    updateMapHistory(wonMap.id);
+    wonDebuffs.forEach((debuff, idx) => {
+      if (debuff) updatePlayerHistory(`p${idx}`, debuff.id);
+    });
+
+    if (currentMode === '2v2') {
+      specialCooldownCounter = isSpecial ? 0 : specialCooldownCounter + 1;
+    } else {
+      specialCooldownCounter++;
+    }
+
+    // 老虎机动画展现部分
     let finishedCount = 0;
     const playerCount = wonDebuffs.length;
     const totalAnimations = 1 + playerCount;
@@ -505,10 +624,12 @@
       }
     };
 
-    const animationPool = (triggerSpecial && specialDebuffPool.length > 0) ? [...debuffsPool, ...specialDebuffPool] : debuffsPool;
+    const animationPool = isSpecial ? [...debuffsPool, ...specialDebuffPool] : debuffsPool;
     
+    // 执行地图滚动动画
     animateReel(reelMap, mapsPool.map(m => m.name), wonMap.name, checkAllFinished);
 
+    // 执行各选手 Debuff 滚动动画
     for (let i = 0; i < playerCount; i++) {
       const reel = document.getElementById(`reel-p${i}`);
       if (reel) {
@@ -518,6 +639,10 @@
       }
     }
   }
+
+  // =================================================================
+  // ==================== 4. 最终结果规则渲染展现 =======================
+  // =================================================================
 
   function renderFAQ(wonDebuffs) {
     let html = '';
