@@ -357,7 +357,7 @@
     let wonMap = null;
 
     // 保底助手：绝对不优先使用后备
-    const把真实数据当命根子 = (filteredPool, backupPool) => {
+    const 把真实数据当命根子 = (filteredPool, backupPool) => {
       if (filteredPool && filteredPool.length > 0) return getRandomItem(filteredPool);
       if (backupPool && backupPool.length > 0) return getRandomItem(backupPool);
       return getRandomItem(fallbackDebuffs);
